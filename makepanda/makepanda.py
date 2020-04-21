@@ -1407,6 +1407,11 @@ def CompileCxx(obj,src,opts):
         else:
             cmd += ' ' + CXXFLAGS
         cmd = cmd.rstrip()
+        
+        # temporary workaround for clang11+wasm backend
+        if GetTarget() == "emscripten":
+            cmd = cmd.replace(' -ffast-math','')
+            cmd = cmd.replace(' -fno-unsafe-math-optimizations','')
 
         building = GetValueOption(opts, "BUILDING:")
         if (building): cmd += " -DBUILDING_" + building
