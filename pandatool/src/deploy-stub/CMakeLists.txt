@@ -2,6 +2,14 @@ if(NOT HAVE_PYTHON)
   return()
 endif()
 
+if (ANDROID)
+  return()
+endif()
+
+if (EMSCRIPTEN)
+  return()
+endif()
+
 add_executable(deploy-stub deploy-stub.c)
 
 if(IS_OSX)
