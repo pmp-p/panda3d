@@ -10,6 +10,8 @@ if (EMSCRIPTEN)
   return()
 endif()
 
+return()
+
 add_executable(deploy-stub deploy-stub.c)
 
 if(IS_OSX)
