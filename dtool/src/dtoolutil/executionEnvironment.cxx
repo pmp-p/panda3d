@@ -540,6 +540,9 @@ read_environment_variables() {
       _variables[variable] = value;
     }
   }
+#elif defined(__EMSCRIPTEN__)
+  // Emscripten has no environment vars.  Don't even try.
+
 #elif defined(HAVE_PROC_SELF_ENVIRON)
   // In some cases, we may have a file called procselfenviron that may be read
   // to determine all of our environment variables.
@@ -589,6 +592,11 @@ read_args() {
   // the p3dtool library.
 
 #ifndef LINK_ALL_STATIC
+
+#if defined(__EMSCRIPTEN__)
+    #error "NO DLFCN SUPPORT YET"
+#endif
+
 #if defined(_WIN32)
   for (const char *filename : libp3dtool_filenames) {
     if (!_dtool_name.empty()) break;
@@ -671,7 +679,7 @@ read_args() {
       }
     }
   }
-#endif
+#endif //LINK_ALL_STATIC
 
 #if defined(HAVE_PROC_SELF_MAPS) || defined(HAVE_PROC_CURPROC_MAP)
   // Some operating systems provide a file in the proc filesystem.

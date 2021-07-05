@@ -36,6 +36,10 @@ ANDROID_API = None
 SYS_LIB_DIRS = []
 SYS_INC_DIRS = []
 DEBUG_DEPENDENCIES = False
+DEFAULT_CC = "gcc"
+DEFAULT_CXX = "g++"
+DEFAULT_AR = "ar"
+DEFAULT_RANLIB = "ranlib"
 
 # Is the current Python a 32-bit or 64-bit build?  There doesn't
 # appear to be a universal test for this.
@@ -340,6 +344,7 @@ def SetTarget(target, arch=None):
     be called *before* any calls are made to GetOutputDir, GetCC, etc."""
     global TARGET, TARGET_ARCH, HAS_TARGET_ARCH
     global TOOLCHAIN_PREFIX
+    global DEFAULT_CC, DEFAULT_CXX, DEFAULT_AR, DEFAULT_RANLIB
 
     host = GetHost()
     host_arch = GetHostArch()
@@ -363,6 +368,9 @@ def SetTarget(target, arch=None):
             exit("Windows architecture must be x86 or x64")
 
     elif target == 'darwin':
+        DEFAULT_CC = "clang"
+        DEFAULT_CXX = "clang++"
+
         if arch == 'amd64':
             arch = 'x86_64'
         if arch == 'aarch64':
@@ -420,6 +428,8 @@ def SetTarget(target, arch=None):
             exit('Android architecture must be arm, armv7a, aarch64, mips, mips64, x86 or x86_64')
 
         TOOLCHAIN_PREFIX = ANDROID_TRIPLE + '-'
+        DEFAULT_CC = "clang"
+        DEFAULT_CXX = "clang++"
 
     elif target == 'linux':
         if arch is not None:
@@ -428,7 +438,17 @@ def SetTarget(target, arch=None):
         elif host != 'linux':
             exit('Should specify an architecture when building for Linux')
 
+    elif target == 'emscripten':
+        DEFAULT_CC = "emcc"
+        DEFAULT_CXX = "em++"
+        DEFAULT_AR = "emar"
+        DEFAULT_RANLIB = "emranlib"
+
     elif target == host:
+        if target == 'freebsd':
+            DEFAULT_CC = "clang"
+            DEFAULT_CXX = "clang++"
+
         if arch is None or arch == host_arch:
             # Not a cross build.
             pass
@@ -469,16 +489,10 @@ def CrossCompiling():
     return GetTarget() != GetHost()
 
 def GetCC():
-    if TARGET in ('darwin', 'freebsd', 'android'):
-        return os.environ.get('CC', TOOLCHAIN_PREFIX + 'clang')
-    else:
-        return os.environ.get('CC', TOOLCHAIN_PREFIX + 'gcc')
+    return os.environ.get('CC', TOOLCHAIN_PREFIX + DEFAULT_CC)
 
 def GetCXX():
-    if TARGET in ('darwin', 'freebsd', 'android'):
-        return os.environ.get('CXX', TOOLCHAIN_PREFIX + 'clang++')
-    else:
-        return os.environ.get('CXX', TOOLCHAIN_PREFIX + 'g++')
+    return os.environ.get('CXX', TOOLCHAIN_PREFIX + DEFAULT_CXX)
 
 def GetStrip():
     # Hack
@@ -490,16 +504,16 @@ def GetStrip():
 def GetAR():
     # Hack
     if TARGET == 'android':
-        return TOOLCHAIN_PREFIX + 'ar'
+        return TOOLCHAIN_PREFIX + DEFAULT_AR
     else:
-        return 'ar'
+        return DEFAULT_AR
 
 def GetRanlib():
     # Hack
     if TARGET == 'android':
-        return TOOLCHAIN_PREFIX + 'ranlib'
+        return TOOLCHAIN_PREFIX + DEFAULT_RANLIB
     else:
-        return 'ranlib'
+        return DEFAULT_RANLIB
 
 BISON = None
 def GetBison():
@@ -1319,7 +1333,10 @@ def GetThirdpartyDir():
             THIRDPARTYDIR = base + "/freebsd-libs-a/"
 
     elif (target == 'android'):
-        THIRDPARTYDIR = GetThirdpartyBase()+"/android-libs-%s/" % (GetTargetArch())
+        THIRDPARTYDIR = base + "/android-libs-%s/" % (GetTargetArch())
+
+    elif (target == 'emscripten'):
+        THIRDPARTYDIR =  base + "/emscripten-libs/"
 
     else:
         Warn("Unsupported platform:", target)
@@ -2031,10 +2048,16 @@ def SdkLocateMax():
                             SDK[version+"CS"] = top + subdir
 
 def SdkLocatePython(prefer_thirdparty_python=False):
+    if GetTarget() == 'emscripten':
+        prefer_thirdparty_python = True
+        Warn("searching wasm *thirdparty* libpython first !")
+
     if PkgSkip("PYTHON"):
         # We're not compiling with Python support.  We still need to set this
         # in case we want to run any scripts that use Python, though.
         SDK["PYTHONEXEC"] = os.path.realpath(sys.executable)
+        if GetTarget() == 'emscripten':
+            Warn("Reminder: Need --use-python for python support !")
         return
 
     abiflags = getattr(sys, 'abiflags', '')
@@ -2093,6 +2116,9 @@ def SdkLocatePython(prefer_thirdparty_python=False):
 
     elif CrossCompiling() or (prefer_thirdparty_python and os.path.isdir(os.path.join(GetThirdpartyDir(), "python"))):
         tp_python = os.path.join(GetThirdpartyDir(), "python")
+
+        if GetTarget() == 'emscripten':
+            Warn(f"searching libpython in {tp_python}/lib/ !")
 
         if GetTarget() == 'darwin':
             py_libs = glob.glob(tp_python + "/lib/libpython[0-9].[0-9].dylib") + \
@@ -2746,6 +2772,8 @@ LIBDIRECTORIES = []
 FRAMEWORKDIRECTORIES = []
 LIBNAMES = []
 DEFSYMBOLS = []
+COMPILEFLAGS = []
+LINKFLAGS = []
 
 def IncDirectory(opt, dir):
     INCDIRECTORIES.append((opt, dir))
@@ -2808,6 +2836,12 @@ def LibName(opt, name):
 
 def DefSymbol(opt, sym, val=""):
     DEFSYMBOLS.append((opt, sym, val))
+
+def CompileFlag(opt, flag):
+    COMPILEFLAGS.append((opt, flag))
+
+def LinkFlag(opt, flag):
+    LINKFLAGS.append((opt, flag))
 
 ########################################################################
 #
@@ -2872,7 +2906,9 @@ def SetupBuildEnvironment(compiler):
             sysroot_flag = ' --sysroot=%s -no-canonical-prefixes' % (SDK["SYSROOT"])
 
         # Extract the dirs from the line that starts with 'libraries: ='.
-        cmd = GetCXX() + " -print-search-dirs" + sysroot_flag
+        # The -E is mostly to keep emscripten happy by preventing it from
+        # running the compiler and complaining about the lack of input files.
+        cmd = GetCXX() + " -E -print-search-dirs" + sysroot_flag
         handle = os.popen(cmd)
         for line in handle:
             if not line.startswith('libraries: ='):
@@ -3271,10 +3307,25 @@ def SetOrigExt(x, v):
     ORIG_EXT[x] = v
 
 def GetExtensionSuffix():
+    target = GetTarget()
     import _imp
-    return _imp.extension_suffixes()[0]
+
+    if target == 'emscripten':
+        return _imp.extension_suffixes()[0].replace('-x86_64-linux-gnu','-wasm')
+
+    if sys.version_info >= (3, 0):
+
+        return _imp.extension_suffixes()[0]
+
+    if target == 'windows':
+        return '.pyd'
+    else:
+        return '.so'
 
 def GetPythonABI():
+    if GetTarget() == 'emscripten':
+        return 'wasm'
+
     soabi = sysconfig.get_config_var('SOABI')
     if soabi:
         return soabi
@@ -3349,6 +3400,15 @@ def CalcLocation(fn, ipath):
         if (fn.endswith(".rsrc")):  return OUTPUTDIR+"/tmp/"+fn
         if (fn.endswith(".plugin")):return OUTPUTDIR+"/plugins/"+fn
         if (fn.endswith(".app")):   return OUTPUTDIR+"/bin/"+fn
+    elif (target == 'emscripten-old'):
+        if (fn.endswith(".obj")):   return OUTPUTDIR+"/tmp/"+fn[:-4]+".bc"
+        if (fn.endswith(".dll")):   return OUTPUTDIR+"/lib/"+fn[:-4]+".bc"
+        if (fn.endswith(".pyd")):   return OUTPUTDIR+"/panda3d/"+fn[:-4]+".bc"
+        if (fn.endswith(".mll")):   return OUTPUTDIR+"/plugins/"+fn
+        if (fn.endswith(".plugin")):return OUTPUTDIR+"/plugins/"+fn[:-7]+dllext+".js"
+        if (fn.endswith(".exe")):   return OUTPUTDIR+"/bin/"+fn[:-4]+".js"
+        if (fn.endswith(".lib")):   return OUTPUTDIR+"/lib/"+fn[:-4]+".a"
+        if (fn.endswith(".ilb")):   return OUTPUTDIR+"/tmp/"+fn[:-4]+".a"
     else:
         if (fn.endswith(".obj")):   return OUTPUTDIR+"/tmp/"+fn[:-4]+".o"
         if (fn.endswith(".dll")):   return OUTPUTDIR+"/lib/"+fn[:-4]+".so"
@@ -3567,10 +3627,10 @@ def TargetAdd(target, dummy=0, opts=[], input=[], dep=[], ipath=None, winrc=None
         if GetLinkAllStatic() and ORIG_EXT[fullinput] == '.lib' and fullinput in TARGET_TABLE:
             tdep = TARGET_TABLE[fullinput]
             for y in tdep.inputs:
-                if ORIG_EXT[y] == '.lib':
+                if ORIG_EXT[y] == '.lib' and y not in t.inputs:
                     t.inputs.append(y)
 
-            for opt, _ in LIBNAMES + LIBDIRECTORIES + FRAMEWORKDIRECTORIES:
+            for opt, _ in LIBNAMES + LIBDIRECTORIES + FRAMEWORKDIRECTORIES + LINKFLAGS + COMPILEFLAGS:
                 if opt in tdep.opts and opt not in t.opts:
                     t.opts.append(opt)
 

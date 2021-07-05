@@ -39,6 +39,20 @@
 
 using std::string;
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+static void em_do_frame(void *arg) {
+  PandaFramework *fwx = (PandaFramework *)arg;
+  nassertv_always(fwx != NULL);
+
+  if (!fwx->do_frame(Thread::get_current_thread())) {
+    emscripten_cancel_main_loop();
+    framework_cat.info() << "Main loop cancelled.\n";
+  }
+}
+#endif
+
 LoaderOptions PandaFramework::_loader_options;
 
 /**
@@ -759,9 +773,14 @@ do_frame(Thread *current_thread) {
  */
 void PandaFramework::
 main_loop() {
+#ifdef __EMSCRIPTEN__
+  framework_cat.info() << "Starting main loop.\n";
+  emscripten_set_main_loop_arg(&em_do_frame, (void *)this, 0, true);
+#else
   Thread *current_thread = Thread::get_current_thread();
   while (do_frame(current_thread)) {
   }
+#endif
 }
 
 /**

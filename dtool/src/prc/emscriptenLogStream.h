@@ -6,15 +6,15 @@
  * license.  You should have received a copy of this license along
  * with this source code in a file named "LICENSE."
  *
- * @file androidLogStream.h
+ * @file emscriptenLogStream.h
  * @author rdb
- * @date 2013-01-12
+ * @date 2015-04-02
  */
 
-#ifndef ANDROIDLOGSTREAM_H
-#define ANDROIDLOGSTREAM_H
+#ifndef EMSCRIPTENLOGSTREAM_H
+#define EMSCRIPTENLOGSTREAM_H
 
-#ifdef ANDROID
+#ifdef __EMSCRIPTEN__
 
 #include "dtoolbase.h"
 #include "notifySeverity.h"
@@ -23,14 +23,15 @@
 #include <iostream>
 
 /**
- * This is a type of ostream that writes each line to the Android log.
+ * This is a type of ostream that writes each line to the JavaScript log
+ * window.
  */
-class AndroidLogStream : public std::ostream {
+class EmscriptenLogStream : public std::ostream {
 private:
-  class AndroidLogStreamBuf : public std::streambuf {
+  class EmscriptenLogStreamBuf : public std::streambuf {
   public:
-    AndroidLogStreamBuf(int priority);
-    virtual ~AndroidLogStreamBuf();
+    EmscriptenLogStreamBuf(int flags);
+    virtual ~EmscriptenLogStreamBuf();
 
   protected:
     virtual int overflow(int c);
@@ -39,20 +40,18 @@ private:
   private:
     void write_char(char c);
 
-    int _priority;
-    std::string _tag;
-    std::string _data;
+    int _flags;
+    string _data;
   };
 
-  AndroidLogStream(int priority);
+  EmscriptenLogStream(int flags);
 
 public:
-  virtual ~AndroidLogStream();
-  static std::ostream &out(NotifySeverity severity);
+  virtual ~EmscriptenLogStream();
 
   friend class Notify;
 };
 
-#endif  // ANDROID
+#endif  // __EMSCRIPTEN__
 
-#endif
+#endif  // EMSCRIPTENLOGSTREAM_H

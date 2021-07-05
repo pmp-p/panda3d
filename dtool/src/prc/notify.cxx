@@ -31,6 +31,11 @@
 
 #ifdef ANDROID
 #include <android/log.h>
+#include "androidLogStream.h"
+#endif
+
+#ifdef __EMSCRIPTEN__
+#include "emscriptenLogStream.h"
 #endif
 
 using std::cerr;
@@ -258,6 +263,22 @@ get_category(const string &fullname) {
 
 /**
  * A convenient way to get the ostream that should be written to for a Notify-
+ * type message of a particular severity.  Also see Category::out() for a
+ * message that is specific to a particular Category.
+ */
+ostream &Notify::
+out(NotifySeverity severity) {
+#if defined(__ANDROID__)
+//|| defined(__EMSCRIPTEN__)
+  // Android and JavaScript have dedicated log systems.
+  return *(ptr()->_log_streams[severity]);
+#else
+  return *(ptr()->_ostream_ptr);
+#endif
+}
+
+/**
+ * A convenient way to get the ostream that should be written to for a Notify-
  * type message.  Also see Category::out() for a message that is specific to a
  * particular Category.
  */
@@ -344,9 +365,18 @@ assert_failure(const char *expression, int line,
   }
 
 #ifdef ANDROID
+  // Write to Android log system.
   __android_log_assert("assert", "Panda3D", "Assertion failed: %s", message.c_str());
 #endif
+
+#ifdef __EMSCRIPTEN__
+  // Write to JavaScript console.
+  emscripten_log(EM_LOG_CONSOLE | EM_LOG_ERROR | EM_LOG_C_STACK,
+                 "Assertion failed: %s", message.c_str());
+
+#else
   nout << "Assertion failed: " << message << "\n";
+#endif
 
   // This is redefined here, shadowing the defining in config_prc.h, so we can
   // guarantee it has already been constructed.
@@ -372,6 +402,11 @@ assert_failure(const char *expression, int line,
     // So we'll force a segfault, which works every time.
     int *ptr = nullptr;
     *ptr = 1;
+
+#elif defined(__EMSCRIPTEN__)
+    // This should drop us into the browser's JavaScript debugger.
+    //emscripten_debugger();
+    EM_ASM(debugger;);
 
 #else  // _MSC_VER
     abort();
@@ -430,6 +465,7 @@ config_initialized() {
   // notify-output even after the initial import of Panda3D modules.  However,
   // it cannot be changed after the first time it is set.
 
+#if 1
   if (_global_ptr == nullptr || _global_ptr->_ostream_ptr == &cerr) {
     static ConfigVariableFilename notify_output
       ("notify-output", "",
@@ -479,4 +515,5 @@ config_initialized() {
       }
     }
   }
+#endif
 }
