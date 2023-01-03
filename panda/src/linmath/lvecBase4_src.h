@@ -20,7 +20,7 @@ class FLOATNAME(UnalignedLVecBase4);
 /**
  * This is the base class for all three-component vectors and points.
  */
-class EXPCL_PANDA_LINMATH ALIGN_LINMATH FLOATNAME(LVecBase4) {
+class EXPCL_PANDA_LINMATH ALIGN_LINMATH FLOATNAME(LVecBase4) : public MemoryBase {
 PUBLISHED:
   typedef FLOATTYPE numeric_type;
   typedef const FLOATTYPE *iterator;
@@ -31,16 +31,16 @@ PUBLISHED:
 
 #ifdef FLOATTYPE_IS_INT
     is_int = 1
-#else
+#else // FLOATTYPE_IS_INT
     is_int = 0
-#endif
+#endif // FLOATTYPE_IS_INT
   };
 
   INLINE_LINMATH FLOATNAME(LVecBase4)() = default;
   INLINE_LINMATH FLOATNAME(LVecBase4)(FLOATTYPE fill_value);
   INLINE_LINMATH FLOATNAME(LVecBase4)(FLOATTYPE x, FLOATTYPE y, FLOATTYPE z, FLOATTYPE w);
   INLINE_LINMATH FLOATNAME(LVecBase4)(const FLOATNAME(UnalignedLVecBase4) &copy);
-  INLINE_LINMATH FLOATNAME(LVecBase4)(const FLOATNAME(LVecBase3) &copy, FLOATTYPE w);
+  INLINE_LINMATH explicit FLOATNAME(LVecBase4)(const FLOATNAME(LVecBase3) &copy, FLOATTYPE w);
   INLINE_LINMATH FLOATNAME(LVecBase4)(const FLOATNAME(LPoint3) &point);
   INLINE_LINMATH FLOATNAME(LVecBase4)(const FLOATNAME(LVector3) &vector);
   ALLOC_DELETED_CHAIN(FLOATNAME(LVecBase4));
@@ -48,7 +48,7 @@ PUBLISHED:
 #ifdef CPPPARSER
   FLOATNAME(LVecBase4) &operator = (const FLOATNAME(LVecBase4) &copy) = default;
   FLOATNAME(LVecBase4) &operator = (FLOATTYPE fill_value) = default;
-#endif
+#endif // CPPPARSER
 
   INLINE_LINMATH static const FLOATNAME(LVecBase4) &zero();
   INLINE_LINMATH static const FLOATNAME(LVecBase4) &unit_x();
@@ -56,9 +56,11 @@ PUBLISHED:
   INLINE_LINMATH static const FLOATNAME(LVecBase4) &unit_z();
   INLINE_LINMATH static const FLOATNAME(LVecBase4) &unit_w();
 
+#ifdef HAVE_PYTHON
   EXTENSION(INLINE_LINMATH PyObject *__reduce__(PyObject *self) const);
   EXTENSION(INLINE_LINMATH PyObject *__getattr__(PyObject *self, const std::string &attr_name) const);
   EXTENSION(INLINE_LINMATH int __setattr__(PyObject *self, const std::string &attr_name, PyObject *assign));
+#endif // HAVE_PYTHON
 
   INLINE_LINMATH FLOATTYPE operator [](int i) const;
   INLINE_LINMATH FLOATTYPE &operator [](int i);
@@ -122,7 +124,7 @@ PUBLISHED:
   INLINE_LINMATH bool normalize();
   INLINE_LINMATH FLOATNAME(LVecBase4) normalized() const;
   INLINE_LINMATH FLOATNAME(LVecBase4) project(const FLOATNAME(LVecBase4) &onto) const;
-#endif
+#endif // !FLOATTYPE_IS_INT
 
   INLINE_LINMATH bool operator < (const FLOATNAME(LVecBase4) &other) const;
   INLINE_LINMATH bool operator == (const FLOATNAME(LVecBase4) &other) const;
@@ -140,7 +142,7 @@ PUBLISHED:
   INLINE_LINMATH size_t add_hash(size_t hash, FLOATTYPE threshold) const;
   INLINE_LINMATH void generate_hash(ChecksumHashGenerator &hashgen,
                                     FLOATTYPE threshold) const;
-#endif
+#endif // !FLOATTYPE_IS_INT
 
   INLINE_LINMATH FLOATNAME(LVecBase4) operator - () const;
 
@@ -160,12 +162,19 @@ PUBLISHED:
 
   INLINE_LINMATH void componentwise_mult(const FLOATNAME(LVecBase4) &other);
 
-  EXTENSION(INLINE_LINMATH FLOATNAME(LVecBase4) __pow__(FLOATTYPE exponent) const);
+#ifdef HAVE_PYTHON
+  EXTENSION(INLINE_LINMATH PyObject *__rmul__(PyObject *self, FLOATTYPE scalar) const);
+
+  EXTENSION(INLINE_LINMATH PyObject *__floordiv__(PyObject *self, FLOATTYPE scalar) const);
+  EXTENSION(INLINE_LINMATH PyObject *__ifloordiv__(PyObject *self, FLOATTYPE scalar));
+
+  EXTENSION(INLINE_LINMATH PyObject *__pow__(PyObject *self, FLOATTYPE exponent) const);
   EXTENSION(INLINE_LINMATH PyObject *__ipow__(PyObject *self, FLOATTYPE exponent));
 
   EXTENSION(INLINE_LINMATH PyObject *__round__(PyObject *self));
   EXTENSION(INLINE_LINMATH PyObject *__floor__(PyObject *self));
   EXTENSION(INLINE_LINMATH PyObject *__ceil__(PyObject *self));
+#endif // HAVE_PYTHON
 
   INLINE_LINMATH FLOATNAME(LVecBase4) fmax(const FLOATNAME(LVecBase4) &other) const;
   INLINE_LINMATH FLOATNAME(LVecBase4) fmin(const FLOATNAME(LVecBase4) &other) const;
@@ -181,6 +190,10 @@ PUBLISHED:
   INLINE_LINMATH void read_datagram_fixed(DatagramIterator &source);
   INLINE_LINMATH void write_datagram(Datagram &destination) const;
   INLINE_LINMATH void read_datagram(DatagramIterator &source);
+
+#ifdef HAVE_PYTHON
+  EXTENSION(INLINE_LINMATH int __getbuffer__(PyObject *self, Py_buffer *view, int flags) const);
+#endif // HAVE_PYTHON
 
 public:
   // The underlying implementation is via the Eigen library, if available.

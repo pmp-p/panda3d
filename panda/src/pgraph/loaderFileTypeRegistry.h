@@ -38,10 +38,12 @@ public:
   void unregister_type(LoaderFileType *type);
 
 PUBLISHED:
+#ifdef HAVE_PYTHON
   EXTENSION(void register_type(PyObject *type));
   EXTENSION(void register_deferred_type(PyObject *entry_point));
 
   EXTENSION(void unregister_type(PyObject *type));
+#endif // HAVE_PYTHON
 
   int get_num_types() const;
   LoaderFileType *get_type(int n) const;
@@ -52,6 +54,10 @@ PUBLISHED:
   void write(std::ostream &out, int indent_level = 0) const;
 
   static LoaderFileTypeRegistry *get_global_ptr();
+
+#ifdef HAVE_PYTHON
+  EXTENSION(PyObject *__reduce__() const);
+#endif // HAVE_PYTHON
 
 private:
   void record_extension(const std::string &extension, LoaderFileType *type);
@@ -69,4 +75,4 @@ private:
   static LoaderFileTypeRegistry *_global_ptr;
 };
 
-#endif
+#endif // !LOADERFILETYPEREGISTRY_H

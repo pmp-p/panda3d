@@ -38,6 +38,14 @@ class EXPCL_PANDA_GOBJ TexturePool {
 PUBLISHED:
   INLINE static bool has_texture(const Filename &filename);
   INLINE static bool verify_texture(const Filename &filename);
+  INLINE static Texture *get_texture(const Filename &filename,
+                                     int primary_file_num_channels = 0,
+                                     bool read_mipmaps = false);
+  INLINE static Texture *get_texture(const Filename &filename,
+                                     const Filename &alpha_filename,
+                                     int primary_file_num_channels = 0,
+                                     int alpha_file_channel = 0,
+                                     bool read_mipmaps = false);
   BLOCKING INLINE static Texture *load_texture(const Filename &filename,
                                                int primary_file_num_channels = 0,
                                                bool read_mipmaps = false,
@@ -90,9 +98,11 @@ PUBLISHED:
   TexturePoolFilter *get_filter(size_t i) const;
   MAKE_SEQ_PROPERTY(filters, get_num_filters, get_filter);
 
+#ifdef HAVE_PYTHON
   EXTENSION(bool register_filter(PyObject *tex_filter));
   EXTENSION(bool unregister_filter(PyObject *tex_filter));
   EXTENSION(bool is_filter_registered(PyObject *tex_filter));
+#endif // HAVE_PYTHON
 
   static TexturePool *get_global_ptr();
 
@@ -109,6 +119,14 @@ private:
   TexturePool();
 
   bool ns_has_texture(const Filename &orig_filename);
+  Texture *ns_get_texture(const Filename &filename,
+                          int primary_file_num_channels = 0,
+                          bool read_mipmaps = false);
+  Texture *ns_get_texture(const Filename &filename,
+                          const Filename &alpha_filename,
+                          int primary_file_num_channels = 0,
+                          int alpha_file_channel = 0,
+                          bool read_mipmaps = false);
   Texture *ns_load_texture(const Filename &orig_filename,
                            int primary_file_num_channels,
                            bool read_mipmaps,
@@ -200,4 +218,4 @@ private:
 
 #include "texturePool.I"
 
-#endif
+#endif // !TEXTUREPOOL_H

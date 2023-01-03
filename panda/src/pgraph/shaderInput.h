@@ -37,7 +37,7 @@
  * This is a small container class that can hold any one of the value types
  * that can be passed as input to a shader.
  */
-class EXPCL_PANDA_PGRAPH ShaderInput {
+class EXPCL_PANDA_PGRAPH ShaderInput : public MemoryBase {
 PUBLISHED:
   // Used when binding texture images.
   enum AccessFlags {
@@ -49,7 +49,9 @@ PUBLISHED:
   static const ShaderInput &get_blank();
   INLINE explicit ShaderInput(CPT_InternalName name, int priority=0);
 
+#ifdef HAVE_PYTHON
   EXTENSION(explicit ShaderInput(CPT_InternalName name, PyObject *value, int priority=0));
+#endif // HAVE_PYTHON
 
 public:
   INLINE ShaderInput(CPT_InternalName name, Texture *tex, int priority=0);
@@ -145,4 +147,4 @@ private:
 
 #include "shaderInput.I"
 
-#endif  // SHADERINPUT_H
+#endif  // !SHADERINPUT_H

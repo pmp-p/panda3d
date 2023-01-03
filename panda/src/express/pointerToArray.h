@@ -65,7 +65,7 @@
 // disable mysterious MSVC warning for static inline PTA::empty_array method
 // need to chk if vc 7.0 still has this problem, would like to keep it enabled
 #pragma warning (disable : 4506)
-#endif
+#endif // _MSC_VER && !__INTEL_COMPILER
 
 template <class Element>
 class ConstPointerToArray;
@@ -96,7 +96,9 @@ PUBLISHED:
   INLINE static PointerToArray<Element> empty_array(size_type n, TypeHandle type_handle = get_type_handle(Element));
   INLINE PointerToArray(const PointerToArray<Element> &copy);
 
+#ifdef HAVE_PYTHON
   EXTENSION(PointerToArray(PyObject *self, PyObject *source));
+#endif // HAVE_PYTHON */
 
   INLINE void clear();
 
@@ -107,9 +109,11 @@ PUBLISHED:
   INLINE void set_element(size_type n, const Element &value);
   EXTENSION(const Element &__getitem__(size_type n) const);
   EXTENSION(void __setitem__(size_type n, const Element &value));
+#ifdef HAVE_PYTHON
   EXTENSION(PyObject *get_data() const);
   EXTENSION(void set_data(PyObject *data));
   EXTENSION(PyObject *get_subdata(size_type n, size_type count) const);
+#endif // HAVE_PYTHON
   INLINE void set_subdata(size_type n, size_type count, const std::string &data);
   INLINE int get_ref_count() const;
   INLINE int get_node_ref_count() const;
@@ -117,9 +121,13 @@ PUBLISHED:
   INLINE size_t count(const Element &) const;
 
 #ifdef HAVE_PYTHON
+  EXTENSION(PyObject *__reduce__(PyObject *self) const);
+
   EXTENSION(int __getbuffer__(PyObject *self, Py_buffer *view, int flags));
   EXTENSION(void __releasebuffer__(PyObject *self, Py_buffer *view) const);
-#endif
+
+  EXTENSION(PointerToArray<Element> __deepcopy__(PyObject *memo) const);
+#endif // HAVE_PYTHON
 
 #else  // CPPPARSER
   // This is the actual, complete interface.
@@ -182,7 +190,7 @@ public:
 #ifndef _WIN32
   INLINE reference operator [](size_type n) const;
   INLINE reference operator [](int n) const;
-#endif
+#endif // !_WIN32
 
   INLINE void push_back(const Element &x);
   INLINE void pop_back();
@@ -265,17 +273,23 @@ PUBLISHED:
   INLINE size_type size() const;
   INLINE const Element &get_element(size_type n) const;
   EXTENSION(const Element &__getitem__(size_type n) const);
+#ifdef HAVE_PYTHON
   EXTENSION(PyObject *get_data() const);
   EXTENSION(PyObject *get_subdata(size_type n, size_type count) const);
+#endif // HAVE_PYTHON
   INLINE int get_ref_count() const;
   INLINE int get_node_ref_count() const;
 
   INLINE size_t count(const Element &) const;
 
 #ifdef HAVE_PYTHON
+  EXTENSION(PyObject *__reduce__(PyObject *self) const);
+
   EXTENSION(int __getbuffer__(PyObject *self, Py_buffer *view, int flags) const);
   EXTENSION(void __releasebuffer__(PyObject *self, Py_buffer *view) const);
-#endif
+
+  EXTENSION(ConstPointerToArray<Element> __deepcopy__(PyObject *memo) const);
+#endif // HAVE_PYTHON
 
 #else  // CPPPARSER
   // This is the actual, complete interface.
@@ -288,9 +302,9 @@ PUBLISHED:
 #ifdef _MSC_VER
   // VC++ seems to break the const_reverse_iterator definition somehow.
   typedef typename pvector<Element>::reverse_iterator reverse_iterator;
-#else
+#else // _MSC_VER
   typedef typename pvector<Element>::const_reverse_iterator reverse_iterator;
-#endif
+#endif // _MSC_VER
   typedef typename pvector<Element>::const_reverse_iterator const_reverse_iterator;
   typedef typename pvector<Element>::difference_type difference_type;
   typedef typename pvector<Element>::size_type size_type;
@@ -326,7 +340,7 @@ PUBLISHED:
 #ifndef _WIN32
   INLINE reference operator [](size_type n) const;
   INLINE reference operator [](int n) const;
-#endif
+#endif // !_WIN32
 
   INLINE operator const Element *() const;
   INLINE const Element *p() const;
@@ -382,4 +396,4 @@ private:
 
 #include "pointerToArray.I"
 
-#endif  // HAVE_POINTERTOARRAY_H
+#endif  // !POINTERTOARRAY_H

@@ -42,6 +42,10 @@ PUBLISHED:
   virtual void set_loop_count(unsigned long loop_count=1) = 0;
   virtual unsigned long get_loop_count() const = 0;
 
+  // loop_start: 0 = beginning.  expressed in seconds.  inits to 0.
+  virtual void set_loop_start(PN_stdfloat loop_start=0) = 0;
+  virtual PN_stdfloat get_loop_start() const = 0;
+
   /**
    * Control time position within the sound, in seconds.  This is similar (in
    * concept) to the seek position within a file.  The value starts at 0.0 (the
@@ -84,6 +88,8 @@ PUBLISHED:
   // There is no set_name(), this is intentional.
   virtual const std::string& get_name() const = 0;
 
+  INLINE bool is_positional() const;
+
   // return: playing time in seconds.
   virtual PN_stdfloat length() const = 0;
 
@@ -123,8 +129,19 @@ PUBLISHED:
   virtual void output(std::ostream &out) const;
   virtual void write(std::ostream &out) const;
 
+PUBLISHED:
+  MAKE_PROPERTY(time, get_time, set_time);
+  MAKE_PROPERTY(volume, get_volume, set_volume);
+  MAKE_PROPERTY(balance, get_balance, set_balance);
+  MAKE_PROPERTY(play_rate, get_play_rate, set_play_rate);
+  MAKE_PROPERTY(active, get_active, set_active);
+  MAKE_PROPERTY(name, get_name);
+  MAKE_PROPERTY(positional, is_positional);
+
 protected:
-  AudioSound();
+  AudioSound(bool positional);
+
+  const bool _positional = false;
 
   friend class AudioManager;
 

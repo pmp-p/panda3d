@@ -37,6 +37,7 @@ OpenALAudioSound(OpenALAudioManager* manager,
                  MovieAudio *movie,
                  bool positional,
                  int mode) :
+  AudioSound(positional),
   _movie(movie),
   _sd(nullptr),
   _playing_loops(0),
@@ -47,12 +48,12 @@ OpenALAudioSound(OpenALAudioManager* manager,
   _volume(1.0f),
   _balance(0),
   _play_rate(1.0),
-  _positional(positional),
   _min_dist(1.0f),
   _max_dist(1000000000.0f),
   _drop_off_factor(1.0f),
   _length(0.0),
   _loop_count(1),
+  _loop_start(0),
   _desired_mode(mode),
   _start_time(0.0),
   _current_time(0.0),
@@ -217,6 +218,8 @@ stop() {
     _stream_queued.resize(0);
   }
 
+  _paused = false;
+
   _manager->stopping_sound(this);
   release_sound_data(false);
 }
@@ -275,6 +278,36 @@ set_loop_count(unsigned long loop_count) {
 unsigned long OpenALAudioSound::
 get_loop_count() const {
   return _loop_count;
+}
+
+/**
+ * Sets the time at which subsequent loops will begin.
+ * A value of 0 indicates the beginning of the audio.
+ */
+void OpenALAudioSound::
+set_loop_start(PN_stdfloat loop_start) {
+  ReMutexHolder holder(OpenALAudioManager::_lock);
+
+  if (!is_valid()) {
+    return;
+  }
+
+  if (loop_start >= _length) {
+    // This loop would begin after the song ends.
+    // Not a good idea.
+    loop_start = 0;
+  }
+
+  _loop_start = loop_start;
+}
+
+/**
+ * Return the time at which subsequent loops will begin.
+ * A value of 0 indicates the beginning of the audio.
+ */
+PN_stdfloat OpenALAudioSound::
+get_loop_start() const {
+  return _loop_start;
 }
 
 /**
@@ -387,7 +420,7 @@ read_stream_data(int bytelen, unsigned char *buffer) {
     int samples = (int)(remain * rate);
     if (samples <= 0) {
       _loops_completed += 1;
-      cursor->seek(0.0);
+      cursor->seek(_loop_start);
       continue;
     }
     if (_sd->_stream->ready() == 0) {
@@ -409,7 +442,7 @@ read_stream_data(int bytelen, unsigned char *buffer) {
     }
     if (samples == 0) {
       _loops_completed += 1;
-      cursor->seek(0.0);
+      cursor->seek(_loop_start);
       if (_playing_loops >= 1000000000) {
         // Prevent infinite loop if endlessly looping empty sound
         return fill;
@@ -533,7 +566,7 @@ push_fresh_buffers() {
   if (_sd->_sample) {
     while ((_loops_completed < _playing_loops) &&
            (_stream_queued.size() < 100)) {
-      queue_buffer(_sd->_sample, 0,_loops_completed, 0.0);
+      queue_buffer(_sd->_sample, 0,_loops_completed, _loop_start);
       _loops_completed += 1;
     }
   } else {
@@ -828,13 +861,13 @@ set_active(bool active) {
     } else {
       // ...deactivate the sound.
       if (status()==PLAYING) {
-        if (_loop_count==0) {
-          // ...we're pausing a looping sound.
-          _paused=true;
-        }
         // Store off the current time so we can resume from where we paused.
         _start_time = get_time();
         stop();
+        if (_loop_count == 0) {
+          // ...we're pausing a looping sound.
+          _paused = true;
+        }
       }
     }
   }

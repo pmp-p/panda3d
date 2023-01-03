@@ -66,9 +66,10 @@ PUBLISHED:
   explicit GeomVertexArrayData(const GeomVertexArrayFormat *array_format,
                                UsageHint usage_hint);
   GeomVertexArrayData(const GeomVertexArrayData &copy);
-  void operator = (const GeomVertexArrayData &copy);
   virtual ~GeomVertexArrayData();
   ALLOC_DELETED_CHAIN(GeomVertexArrayData);
+
+  void operator = (const GeomVertexArrayData &copy) = delete;
 
   int compare_to(const GeomVertexArrayData &other) const;
 
@@ -117,7 +118,7 @@ PUBLISHED:
   EXTENSION(int __getbuffer__(PyObject *self, Py_buffer *view, int flags));
   EXTENSION(int __getbuffer__(PyObject *self, Py_buffer *view, int flags) const);
   EXTENSION(void __releasebuffer__(PyObject *self, Py_buffer *view) const);
-#endif
+#endif // HAVE_PYTHON
 
 public:
   virtual void evict_lru();
@@ -309,12 +310,14 @@ PUBLISHED:
                          const unsigned char *source,
                          size_t from_start, size_t from_size);
 
+#ifdef HAVE_PYTHON
   EXTENSION(void copy_data_from(PyObject *buffer));
   EXTENSION(void copy_subdata_from(size_t to_start, size_t to_size,
                                    PyObject *buffer));
   EXTENSION(void copy_subdata_from(size_t to_start, size_t to_size,
                                    PyObject *buffer,
                                    size_t from_start, size_t from_size));
+#endif // HAVE_PYTHON
 
   INLINE vector_uchar get_data() const;
   void set_data(const vector_uchar &data);
@@ -354,4 +357,4 @@ INLINE std::ostream &operator << (std::ostream &out, const GeomVertexArrayData &
 
 #include "geomVertexArrayData.I"
 
-#endif
+#endif // !GEOMVERTEXARRAYDATA_H

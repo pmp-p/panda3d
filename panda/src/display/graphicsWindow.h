@@ -55,7 +55,11 @@ PUBLISHED:
   const WindowProperties get_requested_properties() const;
   void clear_rejected_properties();
   WindowProperties get_rejected_properties() const;
-  void request_properties(const WindowProperties &requested_properties);
+
+#ifdef HAVE_PYTHON
+  EXTENSION(void request_properties(PyObject *args, PyObject *kwds));
+#endif // HAVE_PYTHON
+
   INLINE bool is_closed() const;
   virtual bool is_active() const;
   INLINE bool is_fullscreen() const;
@@ -100,6 +104,8 @@ PUBLISHED:
   virtual void close_ime();
 
 public:
+  void request_properties(const WindowProperties &requested_properties);
+
   virtual void add_window_proc( const GraphicsWindowProc* wnd_proc_object ){};
   virtual void remove_window_proc( const GraphicsWindowProc* wnd_proc_object ){};
   virtual void clear_window_procs(){};
@@ -122,6 +128,8 @@ public:
   virtual void process_events();
   virtual void set_properties_now(WindowProperties &properties);
 
+  virtual void begin_flip();
+
 protected:
   virtual void close_window();
   virtual bool open_window();
@@ -129,9 +137,6 @@ protected:
 
   virtual bool do_reshape_request(int x_origin, int y_origin, bool has_origin,
                                   int x_size, int y_size);
-
-  virtual void mouse_mode_absolute();
-  virtual void mouse_mode_relative();
 
   // It is an error to call any of the following methods from any thread other
   // than the window thread.
@@ -151,6 +156,8 @@ protected:
 
   bool _got_expose_event;
 
+  PStatCollector _latency_pcollector;
+
 private:
   LightReMutex _properties_lock;
   // protects _requested_properties, _rejected_properties, and _window_event.
@@ -164,7 +171,7 @@ private:
 #ifdef HAVE_PYTHON
   typedef pset<GraphicsWindowProc*> PythonWinProcClasses;
   PythonWinProcClasses _python_window_proc_classes;
-#endif
+#endif // HAVE_PYTHON
 
 public:
   static TypeHandle get_class_type() {
@@ -189,4 +196,4 @@ private:
 
 #include "graphicsWindow.I"
 
-#endif /* GRAPHICSWINDOW_H */
+#endif // !GRAPHICSWINDOW_H
