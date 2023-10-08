@@ -19,7 +19,8 @@
 #include "graphicsWindow.h"
 #include "graphicsPipe.h"
 #include "tinyGraphicsStateGuardian.h"
-
+#if defined(HAVE_SDL)
+#else
 class FrameBufferProperties;
 
 /**
@@ -63,5 +64,5 @@ private:
 };
 
 #include "tinyOffscreenGraphicsPipe.I"
-
+#endif // !HAVE_SDL
 #endif

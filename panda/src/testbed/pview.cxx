@@ -504,11 +504,11 @@ puts("500");
     if (auto_screenshot) {
         Thread *current_thread = Thread::get_current_thread();
         framework.do_frame(current_thread);
-        if (output_screenshot(screenshotfn)) {
-            puts("error");
+        if (!output_screenshot(screenshotfn)) {
+            puts("error output_screenshot");
             return 1;
         } else {
-            puts("ok");
+            puts("ok output_screenshot");
             return 0;
     //      return(output_screenshot(screenshotfn) ? 0:1);
         }

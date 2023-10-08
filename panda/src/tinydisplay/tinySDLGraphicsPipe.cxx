@@ -7,13 +7,13 @@
  * with this source code in a file named "LICENSE."
  *
  * @file tinySDLGraphicsPipe.cxx
- * @author drose
- * @date 2008-04-24
+ * @author drose, pmp-p
+ * @date 2003-09-08
  */
 
 #include "pandabase.h"
 
-#ifdef HAVE_SDL2
+#ifdef HAVE_SDL
 
 #include "tinySDLGraphicsPipe.h"
 #include "tinySDLGraphicsWindow.h"
@@ -51,7 +51,7 @@ TinySDLGraphicsPipe::
 
 /**
  * Returns the name of the rendering interface associated with this
- * GraphicsPipe.  This is used to present to the user to allow him/her to
+ * GraphicsPipe.  This is used to present to the user to allow them to
  * choose between several possible GraphicsPipes available on a particular
  * platform, so the name should be meaningful and unique for a given platform.
  */
@@ -111,4 +111,4 @@ make_output(const std::string &name,
   return nullptr;
 }
 
-#endif  // HAVE_SDL2
+#endif  // HAVE_SDL

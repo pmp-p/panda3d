@@ -16,7 +16,7 @@
 
 #include "pandabase.h"
 
-#ifdef HAVE_SDL2
+#ifdef HAVE_SDL
 
 #include "graphicsWindow.h"
 #include "graphicsPipe.h"
@@ -66,6 +66,6 @@ private:
 
 #include "tinySDLGraphicsPipe.I"
 
-#endif  // HAVE_SDL2
+#endif  // HAVE_SDL
 
 #endif

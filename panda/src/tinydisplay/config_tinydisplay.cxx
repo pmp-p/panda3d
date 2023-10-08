@@ -21,6 +21,7 @@
 #include "tinySDLGraphicsPipe.h"
 #include "tinySDLGraphicsWindow.h"
 #include "tinyOffscreenGraphicsPipe.h"
+#include "tinyOffscreenGraphicsWindow.h"
 #include "tinyGraphicsBuffer.h"
 #include "tinyGraphicsStateGuardian.h"
 #include "tinyGeomMunger.h"
@@ -105,18 +106,20 @@ init_libtinydisplay() {
   ps->set_system_tag("TinyPanda", "native_window_system", "Win");
 #endif
 
-#ifdef HAVE_SDL2
+#ifdef HAVE_SDL
   TinySDLGraphicsPipe::init_type();
   TinySDLGraphicsWindow::init_type();
   selection->add_pipe_type(TinySDLGraphicsPipe::get_class_type(),
                            TinySDLGraphicsPipe::pipe_constructor);
   ps->set_system_tag("TinyPanda", "SDL", "SDL");
-#endif
 
+#else
   TinyOffscreenGraphicsPipe::init_type();
+  TinyOffscreenGraphicsWindow::init_type();
   selection->add_pipe_type(TinyOffscreenGraphicsPipe::get_class_type(),
                            TinyOffscreenGraphicsPipe::pipe_constructor);
   ps->set_system_tag("TinyPanda", "", "");
+#endif
 }
 
 /**
@@ -138,9 +141,10 @@ get_pipe_type_p3tinydisplay() {
   return TinyXGraphicsPipe::get_class_type().get_index();
 #endif
 
-#ifdef HAVE_SDL2
+#ifdef HAVE_SDL
   return TinySDLGraphicsPipe::get_class_type().get_index();
+#else
+  return TinyOffscreenGraphicsPipe::get_class_type().get_index();
 #endif
 
-  return TinyOffscreenGraphicsPipe::get_class_type().get_index();
 }

@@ -11,6 +11,7 @@ set(P3TINYDISPLAY_HEADERS
   tinyXGraphicsPipe.I tinyXGraphicsPipe.h
   tinyXGraphicsWindow.I tinyXGraphicsWindow.h
   tinyOffscreenGraphicsPipe.I tinyOffscreenGraphicsPipe.h
+  tinyOffscreenGraphicsWindow.I tinyOffscreenGraphicsWindow.h
   srgb_tables.h
   zbuffer.h
   zfeatures.h
@@ -44,6 +45,7 @@ set(P3TINYDISPLAY_SOURCES
   tinyGraphicsBuffer.cxx
   tinyGraphicsStateGuardian.cxx
   tinyOffscreenGraphicsPipe.cxx
+  tinyOffscreenGraphicsWindow.cxx
   tinySDLGraphicsPipe.cxx
   tinySDLGraphicsWindow.cxx
   tinyTextureContext.cxx

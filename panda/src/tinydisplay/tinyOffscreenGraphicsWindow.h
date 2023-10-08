@@ -6,38 +6,36 @@
  * license.  You should have received a copy of this license along
  * with this source code in a file named "LICENSE."
  *
- * @file tinySDLGraphicsWindow.h
+ * @file tinyOffscreenGraphicsWindow.h
  * @author drose
  * @date 2008-04-24
  */
 
-#ifndef TINYSDLGRAPHICSWINDOW_H
-#define TINYSDLGRAPHICSWINDOW_H
+#ifndef TINYOffscreenGRAPHICSWINDOW_H
+#define TINYOffscreenGRAPHICSWINDOW_H
 
 #include "pandabase.h"
 
-#ifdef HAVE_SDL
 
-#include "tinySDLGraphicsPipe.h"
+#include "tinyOffscreenGraphicsPipe.h"
 #include "graphicsWindow.h"
 #include "buttonHandle.h"
 #include "zbuffer.h"
 
-#include <SDL2/SDL.h>
 
 /**
- * This graphics window class is implemented via SDL.
+ * This graphics window class is implemented via Offscreen.
  */
-class EXPCL_TINYDISPLAY TinySDLGraphicsWindow : public GraphicsWindow {
+class EXPCL_TINYDISPLAY TinyOffscreenGraphicsWindow : public GraphicsWindow {
 public:
-  TinySDLGraphicsWindow(GraphicsEngine *engine, GraphicsPipe *pipe,
+  TinyOffscreenGraphicsWindow(GraphicsEngine *engine, GraphicsPipe *pipe,
                         const std::string &name,
                         const FrameBufferProperties &fb_prop,
                         const WindowProperties &win_prop,
                         int flags,
                         GraphicsStateGuardian *gsg,
                         GraphicsOutput *host);
-  virtual ~TinySDLGraphicsWindow();
+  virtual ~TinyOffscreenGraphicsWindow();
 
   virtual bool begin_frame(FrameMode mode, Thread *current_thread);
   virtual void end_frame(FrameMode mode, Thread *current_thread);
@@ -54,11 +52,11 @@ protected:
 
 private:
   void create_frame_buffer();
-  static ButtonHandle get_keyboard_button(SDL_Keycode sym);
-  static ButtonHandle get_mouse_button(Uint8 button);
+  static ButtonHandle get_keyboard_button(int sym);
+  static ButtonHandle get_mouse_button(int button);
 
 private:
-  SDL_Surface *_screen;
+  //SDL_Surface *_screen;
   ZBuffer *_frame_buffer;
   unsigned int _flags;
   unsigned int _pitch;
@@ -69,7 +67,7 @@ public:
   }
   static void init_type() {
     GraphicsWindow::init_type();
-    register_type(_type_handle, "TinySDLGraphicsWindow",
+    register_type(_type_handle, "TinyOffscreenGraphicsWindow",
                   GraphicsWindow::get_class_type());
   }
   virtual TypeHandle get_type() const {
@@ -81,8 +79,6 @@ private:
   static TypeHandle _type_handle;
 };
 
-#include "tinySDLGraphicsWindow.I"
-
-#endif  // HAVE_SDL
+#include "tinyOffscreenGraphicsWindow.I"
 
 #endif

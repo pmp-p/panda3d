@@ -19,6 +19,10 @@
 #include "config_tinydisplay.h"
 #include "frameBufferProperties.h"
 
+
+#if defined(HAVE_SDL)
+
+#else
 TypeHandle TinyOffscreenGraphicsPipe::_type_handle;
 
 /**
@@ -39,7 +43,7 @@ TinyOffscreenGraphicsPipe::
 
 /**
  * Returns the name of the rendering interface associated with this
- * GraphicsPipe.  This is used to present to the user to allow him/her to
+ * GraphicsPipe.  This is used to present to the user to allow them to
  * choose between several possible GraphicsPipes available on a particular
  * platform, so the name should be meaningful and unique for a given platform.
  */
@@ -70,9 +74,33 @@ make_output(const std::string &name,
             GraphicsOutput *host,
             int retry,
             bool &precertify) {
-  // Only thing to try: a TinyGraphicsBuffer
 
-  if (retry == 0) {
+  if (!_is_valid) {
+    return nullptr;
+  }
+
+  TinyGraphicsStateGuardian *tinygsg = 0;
+  if (gsg != 0) {
+    DCAST_INTO_R(tinygsg, gsg, nullptr);
+  }
+
+  if (retry == 0 && _is_valid) {
+    if (((flags&BF_require_parasite)!=0)||
+        ((flags&BF_refuse_window)!=0)||
+        ((flags&BF_resizeable)!=0)||
+        ((flags&BF_size_track_host)!=0)||
+        ((flags&BF_rtt_cumulative)!=0)||
+        ((flags&BF_can_bind_color)!=0)||
+        ((flags&BF_can_bind_every)!=0)) {
+      return nullptr;
+    }
+    return new TinyOffscreenGraphicsWindow(engine, this, name, fb_prop, win_prop,
+                                   flags, gsg, host);
+  }
+
+  // Second thing to try: a TinyGraphicsBuffer
+
+  if (retry == 1) {
     if (((flags&BF_require_parasite)!=0)||
         ((flags&BF_require_window)!=0)) {
       return nullptr;
@@ -83,3 +111,5 @@ make_output(const std::string &name,
   // Nothing else left to try.
   return nullptr;
 }
+
+#endif // !HAVE_SDL
