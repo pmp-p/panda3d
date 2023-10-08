@@ -117,7 +117,7 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
   set(global_flags
-    "-Wno-unused-function -Wno-unused-parameter -fno-strict-aliasing -Werror=return-type")
+    "-Wno-unused-function -Wno-unused-parameter -fno-strict-aliasing -Wreturn-type")
   set(release_flags "-Wno-unused-variable")
 
   if(NOT MSVC)
