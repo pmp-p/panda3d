@@ -29,11 +29,12 @@
 #include "pset.h"
 
 #ifdef __EMSCRIPTEN__
+#warning "virtualFileMountHTTP.h cannot be found when using CMAKE"
 #undef __EMSCRIPTEN__
 #endif
 
 #ifdef __EMSCRIPTEN__
-#include "/data/git/panda3d-pmpp/panda/src/downloader/virtualFileMountHTTP.h"
+#include "virtualFileMountHTTP.h"
 #endif
 
 using std::iostream;
