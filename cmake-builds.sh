@@ -40,14 +40,11 @@ then
     exit 0
 fi
 
-pushd ${SDKROOT}
+
 
 if echo $EMSDK|grep emsdk
 then
     echo building emsdk
-    popd
-
-
 
     emcmake ${SDKROOT}/devices/x86_64/usr/bin/cmake ${SRCDIR} \
      -DCMAKE_BUILD_TYPE=Release \
@@ -67,6 +64,7 @@ then
 
 
 else
+    pushd ${SDKROOT}
 
     . scripts/wasisdk-fetch.sh
 
@@ -90,6 +88,8 @@ END
 
     # HAVE_EGG
 
+    echo "WASI_SDK_PREFIX=$WASI_SDK_PREFIX"
+
     ${SDKROOT}/devices/x86_64/usr/bin/cmake ${SRCDIR} \
      -DCMAKE_BUILD_TYPE=Release \
      -DHAVE_THREADS=NO \
@@ -104,12 +104,10 @@ END
     \
      -DHAVE_PYTHON=NO \
     \
-     -DCMAKE_SYSTEM_NAME=WASI \
+     -DCMAKE_SYSTEM_NAME=WASI -DWASISDK=${SDKROOT}/wasisdk \
      -DWASI_SDK_PREFIX=${WASI_SDK_PREFIX} \
-     -DCMAKE_TOOLCHAIN_FILE=${WASISDK}/share/cmake/wasi-sdk.cmake \
+     -DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PREFIX}/../share/cmake/wasi-sdk.cmake \
      -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-
-
 
 
 
