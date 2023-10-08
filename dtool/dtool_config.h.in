@@ -82,7 +82,7 @@
 #cmakedefine USE_GENERIC_DXERR_LIBRARY
 
 /* Define if we have the SDL library. */
-#cmakedefine HAVE_SDL
+#cmakedefine HAVE_SDL2
 
 /* Define if we have X11. */
 #cmakedefine HAVE_X11

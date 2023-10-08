@@ -795,7 +795,10 @@ enable_default_keys() {
 bool PandaFramework::
 do_frame(Thread *current_thread) {
   nassertr(_is_open, false);
-
+puts("798");
+      _engine->render_frame();
+      _engine->render_frame();
+puts("800");
   _task_mgr.poll();
 
   return !_exit_flag;

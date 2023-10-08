@@ -384,6 +384,9 @@ main(int argc, char **argv) {
 
     case 'o':
         nout << "off type window set" << endl;
+
+      load_prc_file_data("", "depth-bits 32");
+      load_prc_file_data("", "framebuffer-depth 1");
       load_prc_file_data("", "window-type offscreen");
       break;
 
@@ -443,7 +446,7 @@ main(int argc, char **argv) {
     // We've successfully opened a window.
 
     NodePath loading_np;
-
+puts("Begin");
     if (show_loading) {
       // Put up a "loading" message for the user's benefit.
       NodePath aspect_2d = window->get_aspect_2d();
@@ -484,28 +487,37 @@ main(int argc, char **argv) {
       }
     }
     window->loop_animations(hierarchy_match_flags);
-
+puts("487");
     // Make sure the textures are preloaded.
     framework.get_models().prepare_scene(window->get_graphics_output()->get_gsg());
-
+puts("490");
     loading_np.remove_node();
-
+puts("492");
     if (apply_lighting) {
       window->set_lighting(true);
     }
-
+puts("496");
     if (auto_center) {
       window->center_trackball(framework.get_models());
     }
-
+puts("500");
     if (auto_screenshot) {
-      return(output_screenshot(screenshotfn) ? 0:1);
+        Thread *current_thread = Thread::get_current_thread();
+        framework.do_frame(current_thread);
+        if (output_screenshot(screenshotfn)) {
+            puts("error");
+            return 1;
+        } else {
+            puts("ok");
+            return 0;
+    //      return(output_screenshot(screenshotfn) ? 0:1);
+        }
     }
-
+puts("504");
     if (anim_controls) {
       window->set_anim_controls(true);
     }
-
+puts("508");
     PT(AdjustCameraClipPlanesTask) task = new AdjustCameraClipPlanesTask("Adjust Camera Bounds", window->get_camera(0));
     framework.get_task_mgr().add(task);
 
@@ -520,7 +532,8 @@ main(int argc, char **argv) {
     framework.main_loop();
     framework.report_frame_rate(nout);
   }
-
+puts("523");
   framework.close_framework();
+puts("End");
   return (0);
 }

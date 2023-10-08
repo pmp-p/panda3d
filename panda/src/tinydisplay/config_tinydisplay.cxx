@@ -105,7 +105,7 @@ init_libtinydisplay() {
   ps->set_system_tag("TinyPanda", "native_window_system", "Win");
 #endif
 
-#ifdef HAVE_SDL
+#ifdef HAVE_SDL2
   TinySDLGraphicsPipe::init_type();
   TinySDLGraphicsWindow::init_type();
   selection->add_pipe_type(TinySDLGraphicsPipe::get_class_type(),
@@ -138,7 +138,7 @@ get_pipe_type_p3tinydisplay() {
   return TinyXGraphicsPipe::get_class_type().get_index();
 #endif
 
-#ifdef HAVE_SDL
+#ifdef HAVE_SDL2
   return TinySDLGraphicsPipe::get_class_type().get_index();
 #endif
 

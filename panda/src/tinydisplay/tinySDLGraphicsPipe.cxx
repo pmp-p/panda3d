@@ -13,7 +13,7 @@
 
 #include "pandabase.h"
 
-#ifdef HAVE_SDL
+#ifdef HAVE_SDL2
 
 #include "tinySDLGraphicsPipe.h"
 #include "tinySDLGraphicsWindow.h"
@@ -111,4 +111,4 @@ make_output(const std::string &name,
   return nullptr;
 }
 
-#endif  // HAVE_SDL
+#endif  // HAVE_SDL2

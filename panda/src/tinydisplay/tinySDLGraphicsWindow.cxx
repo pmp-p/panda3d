@@ -13,7 +13,7 @@
 
 #include "pandabase.h"
 
-#ifdef HAVE_SDL
+#ifdef HAVE_SDL2
 
 #include "tinySDLGraphicsWindow.h"
 #include "tinyGraphicsStateGuardian.h"
@@ -134,12 +134,12 @@ end_flip() {
     SDL_Surface *temp =
       SDL_CreateRGBSurfaceFrom(_frame_buffer->pbuf, _frame_buffer->xsize, _frame_buffer->ysize,
                                32, _frame_buffer->linesize, 0xff0000, 0x00ff00, 0x0000ff, 0xff000000);
-    SDL_SetAlpha(temp, SDL_RLEACCEL, 0);
+    SDL_SetSurfaceAlphaMod(temp, 0);
     SDL_BlitSurface(temp, nullptr, _screen, nullptr);
     SDL_FreeSurface(temp);
   }
 
-  SDL_Flip(_screen);
+  SDL_blit(_screen);
   GraphicsWindow::end_flip();
 }
 
@@ -163,11 +163,12 @@ process_events() {
   SDL_Event evt;
   ButtonHandle button;
   while (SDL_PollEvent(&evt)) {
+/*
     switch(evt.type) {
     case SDL_KEYDOWN:
-      if (evt.key.keysym.unicode) {
-        _input_devices[0]->keystroke(evt.key.keysym.unicode);
-      }
+//      if (evt.key.keysym.) {
+//        _input_devices[0]->keystroke(evt.key.keysym.unicode);
+//      }
       button = get_keyboard_button(evt.key.keysym.sym);
       if (button != ButtonHandle::none()) {
         _input_devices[0]->button_down(button);
@@ -212,6 +213,7 @@ process_events() {
       system_changed_properties(properties);
       break;
     }
+*/
   }
 }
 
@@ -279,15 +281,20 @@ open_window() {
 
   _flags = SDL_SWSURFACE;
   if (_properties.get_fullscreen()) {
-    _flags |= SDL_FULLSCREEN;
+    _flags |= SDL_WINDOW_FULLSCREEN;
   }
+/*
   if (!_properties.get_fixed_size()) {
     _flags |= SDL_RESIZABLE;
   }
   if (_properties.get_undecorated()) {
     _flags |= SDL_NOFRAME;
   }
-  _screen = SDL_SetVideoMode(_properties.get_x_size(), _properties.get_y_size(), 32, _flags);
+*/
+//  _screen = SDL_SetVideoMode(_properties.get_x_size(), _properties.get_y_size(), 32, _flags);
+
+  SDL_Window *win = SDL_CreateWindow("Panda3D", 0, 0, _properties.get_x_size(), _properties.get_y_size(), _flags);
+    _screen = SDL_GetWindowSurface(win);
 
   if (_screen == nullptr) {
     tinydisplay_cat.error()
@@ -326,8 +333,7 @@ create_frame_buffer() {
   int mode;
   switch (_screen->format->BitsPerPixel) {
   case  8:
-    tinydisplay_cat.error()
-      << "SDL Palettes are currently not supported.\n";
+    tinydisplay_cat.error() << "SDL Palettes are currently not supported.\n";
     return;
 
   case 16:
@@ -353,7 +359,8 @@ create_frame_buffer() {
  * Maps from an SDL keysym to the corresponding Panda ButtonHandle.
  */
 ButtonHandle TinySDLGraphicsWindow::
-get_keyboard_button(SDLKey sym) {
+get_keyboard_button(SDL_Keycode sym) {
+/*
   switch (sym) {
   case SDLK_BACKSPACE: return KeyboardButton::backspace();
   case SDLK_TAB: return KeyboardButton::tab();
@@ -488,8 +495,8 @@ get_keyboard_button(SDLKey sym) {
     // case SDLK_POWER: return KeyboardButton::power(); case SDLK_EURO: return
     // KeyboardButton::euro();
   }
-  tinydisplay_cat.info()
-    << "unhandled keyboard button " << sym << "\n";
+*/
+  tinydisplay_cat.info() << "unhandled keyboard button " << sym << "\n";
 
   return ButtonHandle::none();
 }
@@ -500,6 +507,7 @@ get_keyboard_button(SDLKey sym) {
  */
 ButtonHandle TinySDLGraphicsWindow::
 get_mouse_button(Uint8 button) {
+/*
   switch (button) {
   case SDL_BUTTON_LEFT:
     return MouseButton::one();
@@ -516,10 +524,10 @@ get_mouse_button(Uint8 button) {
   case SDL_BUTTON_WHEELDOWN:
     return MouseButton::wheel_down();
   }
-  tinydisplay_cat.info()
-    << "unhandled mouse button " << button << "\n";
+*/
+  tinydisplay_cat.info() << "unhandled mouse button " << button << "\n";
 
   return ButtonHandle::none();
 }
 
-#endif  // HAVE_SDL
+#endif  // HAVE_SDL2

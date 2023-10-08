@@ -16,14 +16,14 @@
 
 #include "pandabase.h"
 
-#ifdef HAVE_SDL
+#ifdef HAVE_SDL2
 
 #include "tinySDLGraphicsPipe.h"
 #include "graphicsWindow.h"
 #include "buttonHandle.h"
 #include "zbuffer.h"
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 /**
  * This graphics window class is implemented via SDL.
@@ -54,7 +54,7 @@ protected:
 
 private:
   void create_frame_buffer();
-  static ButtonHandle get_keyboard_button(SDLKey sym);
+  static ButtonHandle get_keyboard_button(SDL_Keycode sym);
   static ButtonHandle get_mouse_button(Uint8 button);
 
 private:
@@ -83,6 +83,6 @@ private:
 
 #include "tinySDLGraphicsWindow.I"
 
-#endif  // HAVE_SDL
+#endif  // HAVE_SDL2
 
 #endif
