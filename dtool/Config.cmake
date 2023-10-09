@@ -30,7 +30,7 @@ if(DEFINED CMAKE_CXX_FLAGS_COVERAGE)
 endif()
 
 # Are we building with static or dynamic linking?
-if(EMSCRIPTEN)
+if(EMSCRIPTEN OR WASI)
   set(_default_shared OFF)
 else()
   set(_default_shared ON)
@@ -453,10 +453,10 @@ on DirectX rendering." OFF)
 mark_as_advanced(SUPPORT_FIXED_FUNCTION)
 
 # Should build tinydisplay?
-#option(HAVE_TINYDISPLAY
-#  "Builds TinyDisplay, a light software renderer based on TinyGL,
-#that is built into Panda. TinyDisplay is not as full-featured as Mesa
-#but is many times faster." ON)
+option(HAVE_TINYDISPLAY
+  "Builds TinyDisplay, a light software renderer based on TinyGL,
+that is built into Panda. TinyDisplay is not as full-featured as Mesa
+but is many times faster." ON)
 
 # Is SDL installed, and where?
 set(Threads_FIND_QUIETLY TRUE) # Fix for builtin FindSDL
@@ -566,7 +566,7 @@ set(THREADS_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}")
 set(HAVE_POSIX_THREADS ${CMAKE_USE_PTHREADS_INIT})
 
 # Add basic use flag for threading
-if(EMSCRIPTEN)
+if(EMSCRIPTEN OR WASI)
   set(_default_threads OFF)
 else()
   set(_default_threads ON)

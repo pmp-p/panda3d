@@ -46,7 +46,7 @@ if echo $EMSDK|grep emsdk
 then
     echo building emsdk
 
-    emcmake ${SDKROOT}/devices/x86_64/usr/bin/cmake ${SRCDIR} \
+    EMCC_CFLAGS="-sNODERAWFS" emcmake ${SDKROOT}/devices/x86_64/usr/bin/cmake ${SRCDIR} \
      -DCMAKE_BUILD_TYPE=Release \
      -DHAVE_THREADS=NO \
      -DHAVE_EGL=NO -DHAVE_GL=NO -DHAVE_GLX=NO -DHAVE_X11=NO -DHAVE_GLES1=NO -DHAVE_GLES2=NO \
@@ -56,11 +56,13 @@ then
      -DHAVE_AUDIO=NO -DHAVE_OPUS=NO \
      -DHAVE_HARFBUZZ=NO -DHAVE_FREETYPE=NO \
      -DTHIRDPARTY_DIRECTORY=${PREFIX} \
-    -DHAVE_IOS_TYPEDEFS=1 -DWANT_NATIVE_NET=NO -DHAVE_TINYDISPLAY=1 \
+ -DHAVE_IOS_TYPEDEFS=1 -DHAVE_TINYDISPLAY=1 \
     \
      -DHAVE_PYTHON=NO \
     \
      -DCMAKE_INSTALL_PREFIX=${PREFIX}
+
+#      -DWANT_NATIVE_NET=NO
 
 
 else
