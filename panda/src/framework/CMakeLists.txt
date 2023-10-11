@@ -23,13 +23,8 @@ if(NOT BUILD_SHARED_LIBS)
   elseif(HAVE_TINYDISPLAY)
     if (HAVE_X11)
         list(APPEND P3FRAMEWORK_LINK_TARGETS p3tinydisplay p3x11display)
-        message(WARNING "p3 : X11 + tinydisplay")
     elseif (HAVE_SDL)
         list(APPEND P3FRAMEWORK_LINK_TARGETS p3tinydisplay SDL2)
-        message(WARNING "p3 : SDL2 + tinydisplay")
-    else()
-        message(WARNING "p3 : only tinydisplay")
-        list(APPEND P3FRAMEWORK_LINK_TARGETS p3tinydisplay)
     endif()
   else()
     message(WARNING "No renderer library available to link to p3framework.")
@@ -50,9 +45,9 @@ target_link_libraries(p3framework ${P3FRAMEWORK_LINK_TARGETS})
 
 foreach(var
     HAVE_GL
-    HAVE_TINYDISPLAY
     HAVE_DX9
     HAVE_EGG
+    HAVE_TINYDISPLAY
 )
 
   if(${var})

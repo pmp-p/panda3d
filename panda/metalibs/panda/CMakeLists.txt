@@ -12,6 +12,10 @@ if(WANT_NATIVE_NET)
   endif()
 endif()
 
+if(HAVE_TINYDISPLAY)
+  list(APPEND PANDA_LINK_TARGETS p3tinydisplay)
+endif()
+
 if(HAVE_AUDIO)
   list(APPEND PANDA_LINK_TARGETS p3audio)
 endif()

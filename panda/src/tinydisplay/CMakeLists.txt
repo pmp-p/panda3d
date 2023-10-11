@@ -1,3 +1,7 @@
+if (NOT HAVE_TINYDISPLAY)
+  return()
+endif()
+
 set(P3TINYDISPLAY_HEADERS
   config_tinydisplay.h
   tinyGeomMunger.I tinyGeomMunger.h
@@ -66,20 +70,10 @@ set(P3TINYDISPLAY_SOURCES
   zmath.cxx
 )
 
+add_compile_options(-Wno-unused-but-set-variable)
 composite_sources(p3tinydisplay P3TINYDISPLAY_SOURCES)
 add_component_library(p3tinydisplay SYMBOL BUILDING_TINYDISPLAY ${P3TINYDISPLAY_HEADERS} ${P3TINYDISPLAY_SOURCES})
-if (HAVE_X11)
-    target_link_libraries(p3tinydisplay panda p3x11display)
-# p3windisplay
-# p3cocoadisplay
-elseif (WASI OR EMSCRIPTEN)
-    target_link_libraries(p3tinydisplay panda )
-else()
-    message(WARNING "no display and not headless build")
-    target_link_libraries(p3tinydisplay panda )
-endif()
-
-
+target_link_libraries(p3tinydisplay p3putil p3display)
 if(NOT BUILD_METALIBS)
   install(TARGETS p3tinydisplay
     EXPORT Core COMPONENT Core
@@ -88,4 +82,6 @@ if(NOT BUILD_METALIBS)
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/panda3d
     ARCHIVE COMPONENT CoreDevel)
 endif()
+
 install(FILES ${P3TINYDISPLAY_HEADERS} COMPONENT CoreDevel DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/panda3d)
+
