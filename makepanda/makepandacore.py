@@ -6,7 +6,6 @@
 ########################################################################
 
 import configparser
-from distutils import sysconfig # DO NOT CHANGE to sysconfig - see #1230
 import fnmatch
 import getpass
 import glob
@@ -21,6 +20,7 @@ import sys
 import threading
 import _thread as thread
 import time
+import locations
 
 SUFFIX_INC = [".cxx",".cpp",".c",".h",".I",".yxx",".lxx",".mm",".rc",".r"]
 SUFFIX_DLL = [".dll",".dlo",".dle",".dli",".dlm",".mll",".exe",".pyd",".ocx"]
@@ -2230,7 +2230,7 @@ def SdkLocatePython(prefer_thirdparty_python=False):
         # On macOS, search for the Python framework directory matching the
         # version number of our current Python version.
         sysroot = SDK.get("MACOSX", "")
-        version = sysconfig.get_python_version()
+        version = locations.get_python_version()
 
         py_fwx = "{0}/System/Library/Frameworks/Python.framework/Versions/{1}".format(sysroot, version)
 
@@ -2255,8 +2255,8 @@ def SdkLocatePython(prefer_thirdparty_python=False):
         LibDirectory("PYTHON", py_fwx + "/lib")
 
     #elif GetTarget() == 'windows':
-    #    SDK["PYTHON"] = os.path.dirname(sysconfig.get_python_inc())
-    #    SDK["PYTHONVERSION"] = "python" + sysconfig.get_python_version()
+    #    SDK["PYTHON"] = os.path.dirname(locations.get_python_inc())
+    #    SDK["PYTHONVERSION"] = "python" + locations.get_python_version()
     #    SDK["PYTHONEXEC"] = sys.executable
 
     elif GetTarget() == 'emscripten':
@@ -2271,14 +2271,14 @@ def SdkLocatePython(prefer_thirdparty_python=False):
         LibDirectory("PYTHON", libdir)
 
     else:
-        SDK["PYTHON"] = sysconfig.get_python_inc()
-        SDK["PYTHONVERSION"] = "python" + sysconfig.get_python_version() + abiflags
+        SDK["PYTHON"] = locations.get_python_inc()
+        SDK["PYTHONVERSION"] = "python" + locations.get_python_version() + abiflags
         SDK["PYTHONEXEC"] = os.path.realpath(sys.executable)
 
     if CrossCompiling():
         # We need a version of Python we can run.
         SDK["PYTHONEXEC"] = sys.executable
-        host_version = "python" + sysconfig.get_python_version() + abiflags
+        host_version = "python" + locations.get_python_version() + abiflags
         if SDK["PYTHONVERSION"] != host_version:
             exit("Host Python version (%s) must be the same as target Python version (%s)!" % (host_version, SDK["PYTHONVERSION"]))
 
@@ -2487,9 +2487,9 @@ def SdkLocateMacOSX(archs = []):
     sdk_versions = []
     if 'arm64' not in archs:
         # Prefer pre-10.14 for now so that we can keep building FMOD.
-        sdk_versions += ["10.13", "10.12", "10.11", "10.10", "10.9"]
+        sdk_versions += ["10.13", "10.12"]
 
-    sdk_versions += ["13.0", "12.3", "11.3", "11.1", "11.0"]
+    sdk_versions += ["14.0", "13.3", "13.1", "13.0", "12.3", "11.3", "11.1", "11.0"]
 
     if 'arm64' not in archs:
         sdk_versions += ["10.15", "10.14"]
@@ -3462,24 +3462,11 @@ def GetExtensionSuffix():
 
 def GetPythonABI():
     if not CrossCompiling():
-        soabi = sysconfig.get_config_var('SOABI')
+        soabi = locations.get_config_var('SOABI')
         if soabi:
             return soabi
 
-    soabi = 'cpython-%d%d' % (sys.version_info[:2])
-
-    if sys.version_info >= (3, 8):
-        return soabi
-
-    debug_flag = sysconfig.get_config_var('Py_DEBUG')
-    if (debug_flag is None and hasattr(sys, 'gettotalrefcount')) or debug_flag:
-        soabi += 'd'
-
-    malloc_flag = sysconfig.get_config_var('WITH_PYMALLOC')
-    if malloc_flag is None or malloc_flag:
-        soabi += 'm'
-
-    return soabi
+    return 'cpython-%d%d' % (sys.version_info[:2])
 
 def CalcLocation(fn, ipath):
     if fn.startswith("panda3d/") and fn.endswith(".py"):
@@ -3605,8 +3592,8 @@ def GetCurrentPythonVersionInfo():
         "soabi": GetPythonABI(),
         "ext_suffix": GetExtensionSuffix(),
         "executable": sys.executable,
-        "purelib": sysconfig.get_python_lib(False),
-        "platlib": sysconfig.get_python_lib(True),
+        "purelib": locations.get_python_lib(False),
+        "platlib": locations.get_python_lib(True),
     }
 
 
@@ -3630,7 +3617,7 @@ def UpdatePythonVersionInfoFile(new_info):
                version_info["soabi"] == new_info["soabi"] or \
                not os.path.isfile(core_pyd) or \
                version_info["version"].split(".", 1)[0] == "2" or \
-               version_info["version"] in ("3.0", "3.1", "3.2", "3.3", "3.4", "3.5"):
+               version_info["version"] in ("3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7"):
                 json_data.remove(version_info)
 
     if not PkgSkip("PYTHON"):
@@ -3655,7 +3642,7 @@ def ReadPythonVersionInfoFile():
 
         # Don't include unsupported versions of Python.
         for version_info in json_data[:]:
-            if version_info["version"] in ("2.6", "2.7", "3.0", "3.1", "3.2", "3.3", "3.4"):
+            if version_info["version"] in ("2.6", "2.7", "3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7"):
                 json_data.remove(version_info)
 
         return json_data

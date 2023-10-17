@@ -745,7 +745,7 @@ def MakeInstallerOSX(version, python_versions=[], installdir=None, **kwargs):
     dist.write('</installer-script>\n')
     dist.close()
 
-    oscmd('hdiutil create Panda3D-rw.dmg -volname "Panda3D SDK %s" -srcfolder dstroot/Panda3D' % (version))
+    oscmd('hdiutil create Panda3D-rw.dmg -fs HFS+ -volname "Panda3D SDK %s" -srcfolder dstroot/Panda3D' % (version))
     oscmd('hdiutil convert Panda3D-rw.dmg -format UDBZ -o %s' % (dmg_name))
     oscmd('rm -f Panda3D-rw.dmg')
 
@@ -942,8 +942,7 @@ def MakeInstallerAndroid(version, **kwargs):
                     shutil.copy(os.path.join(source_dir, base), target)
 
     # Copy the Python standard library to the .apk as well.
-    # DO NOT CHANGE TO sysconfig - see #1230
-    from distutils.sysconfig import get_python_lib
+    from locations import get_python_lib
     stdlib_source = get_python_lib(False, True)
     stdlib_target = os.path.join("apkroot", "lib", "python{0}.{1}".format(*sys.version_info))
     copy_python_tree(stdlib_source, stdlib_target)

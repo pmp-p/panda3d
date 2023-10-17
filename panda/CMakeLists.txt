@@ -8,6 +8,7 @@ add_subdirectory(src/audiotraits)
 add_subdirectory(src/chan)
 add_subdirectory(src/char)
 add_subdirectory(src/cocoadisplay)
+add_subdirectory(src/cocoagldisplay)
 add_subdirectory(src/collide)
 add_subdirectory(src/configfiles)
 add_subdirectory(src/cull)
@@ -58,6 +59,9 @@ add_subdirectory(src/vrpn)
 add_subdirectory(src/wgldisplay)
 add_subdirectory(src/windisplay)
 add_subdirectory(src/x11display)
+
+# Creates a metalib, so should go after
+add_subdirectory(src/tinydisplay)
 
 # For other components
 # bullet
