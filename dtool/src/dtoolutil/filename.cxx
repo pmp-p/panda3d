@@ -16,7 +16,6 @@
 #include "dSearchPath.h"
 #include "executionEnvironment.h"
 #include "vector_string.h"
-#include "atomicAdjust.h"
 
 #include <stdio.h>  // For rename() and tempnam()
 #include <time.h>   // for clock() and time()
@@ -25,10 +24,13 @@
 
 #ifdef PHAVE_UTIME_H
 #include <utime.h>
+#endif
 
 // We assume we have these too.
+#ifndef _WIN32
 #include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
 #endif
 
 #ifdef PHAVE_GLOB_H
@@ -60,10 +62,10 @@ using std::wstring;
 
 TextEncoder::Encoding Filename::_filesystem_encoding = TextEncoder::E_utf8;
 
-TVOLATILE AtomicAdjust::Pointer Filename::_home_directory;
-TVOLATILE AtomicAdjust::Pointer Filename::_temp_directory;
-TVOLATILE AtomicAdjust::Pointer Filename::_user_appdata_directory;
-TVOLATILE AtomicAdjust::Pointer Filename::_common_appdata_directory;
+patomic<Filename *> Filename::_home_directory(nullptr);
+patomic<Filename *> Filename::_temp_directory(nullptr);
+patomic<Filename *> Filename::_user_appdata_directory(nullptr);
+patomic<Filename *> Filename::_common_appdata_directory(nullptr);
 TypeHandle Filename::_type_handle;
 
 #ifdef ANDROID
@@ -445,13 +447,21 @@ temporary(const string &dirname, const string &prefix, const string &suffix,
   if (fdirname.empty()) {
     // If we are not given a dirname, use the system tempnam() function to
     // create a system-defined temporary filename.
+#if defined(__wasi__)
+#warning "FIXME tempnam()"
+    const char *name="tmp0001";
+#else
 #ifdef _MSC_VER
     char *name = _tempnam(nullptr, prefix.c_str());
 #else
     char *name = tempnam(nullptr, prefix.c_str());
 #endif
+#endif
     Filename result = Filename::from_os_specific(name);
+#if !defined(__wasi__)
+#warning "FIXME tempnam()"
     free(name);
+#endif
     result.set_type(type);
     return result;
   }
@@ -486,7 +496,8 @@ temporary(const string &dirname, const string &prefix, const string &suffix,
  */
 const Filename &Filename::
 get_home_directory() {
-  if (AtomicAdjust::get_ptr(_home_directory) == nullptr) {
+  Filename *curdir = _home_directory.load(std::memory_order_consume);
+  if (curdir == nullptr) {
     Filename home_directory;
 
     // In all environments except Windows, check $HOME first.
@@ -538,14 +549,16 @@ get_home_directory() {
     }
 
     Filename *newdir = new Filename(home_directory);
-    if (AtomicAdjust::compare_and_exchange_ptr(_home_directory, nullptr, newdir) != nullptr) {
+    if (_home_directory.compare_exchange_strong(curdir, newdir, std::memory_order_release, std::memory_order_consume)) {
+      return *newdir;
+    } else {
       // Didn't store it.  Must have been stored by someone else.
-      assert(_home_directory != nullptr);
+      assert(curdir != nullptr);
       delete newdir;
     }
   }
 
-  return (*(Filename *)_home_directory);
+  return *curdir;
 }
 
 /**
@@ -553,7 +566,8 @@ get_home_directory() {
  */
 const Filename &Filename::
 get_temp_directory() {
-  if (AtomicAdjust::get_ptr(_temp_directory) == nullptr) {
+  Filename *curdir = _temp_directory.load(std::memory_order_consume);
+  if (curdir == nullptr) {
     Filename temp_directory;
 
 #ifdef _WIN32
@@ -586,14 +600,16 @@ get_temp_directory() {
     }
 
     Filename *newdir = new Filename(temp_directory);
-    if (AtomicAdjust::compare_and_exchange_ptr(_temp_directory, nullptr, newdir) != nullptr) {
+    if (_temp_directory.compare_exchange_strong(curdir, newdir, std::memory_order_release, std::memory_order_consume)) {
+      return *newdir;
+    } else {
       // Didn't store it.  Must have been stored by someone else.
-      assert(_temp_directory != nullptr);
+      assert(curdir != nullptr);
       delete newdir;
     }
   }
 
-  return (*(Filename *)_temp_directory);
+  return *curdir;
 }
 
 /**
@@ -603,7 +619,8 @@ get_temp_directory() {
  */
 const Filename &Filename::
 get_user_appdata_directory() {
-  if (AtomicAdjust::get_ptr(_user_appdata_directory) == nullptr) {
+  Filename *curdir = _user_appdata_directory.load(std::memory_order_consume);
+  if (curdir == nullptr) {
     Filename user_appdata_directory;
 
 #ifdef _WIN32
@@ -643,14 +660,16 @@ get_user_appdata_directory() {
     }
 
     Filename *newdir = new Filename(user_appdata_directory);
-    if (AtomicAdjust::compare_and_exchange_ptr(_user_appdata_directory, nullptr, newdir) != nullptr) {
+    if (_user_appdata_directory.compare_exchange_strong(curdir, newdir, std::memory_order_release, std::memory_order_consume)) {
+      return *newdir;
+    } else {
       // Didn't store it.  Must have been stored by someone else.
-      assert(_user_appdata_directory != nullptr);
+      assert(curdir != nullptr);
       delete newdir;
     }
   }
 
-  return (*(Filename *)_user_appdata_directory);
+  return *curdir;
 }
 
 /**
@@ -659,7 +678,8 @@ get_user_appdata_directory() {
  */
 const Filename &Filename::
 get_common_appdata_directory() {
-  if (AtomicAdjust::get_ptr(_common_appdata_directory) == nullptr) {
+  Filename *curdir = _common_appdata_directory.load(std::memory_order_consume);
+  if (curdir == nullptr) {
     Filename common_appdata_directory;
 
 #ifdef _WIN32
@@ -693,14 +713,16 @@ get_common_appdata_directory() {
     }
 
     Filename *newdir = new Filename(common_appdata_directory);
-    if (AtomicAdjust::compare_and_exchange_ptr(_common_appdata_directory, nullptr, newdir) != nullptr) {
+    if (_common_appdata_directory.compare_exchange_strong(curdir, newdir, std::memory_order_release, std::memory_order_consume)) {
+      return *newdir;
+    } else {
       // Didn't store it.  Must have been stored by someone else.
-      assert(_common_appdata_directory != nullptr);
+      assert(curdir != nullptr);
       delete newdir;
     }
   }
 
-  return (*(Filename *)_common_appdata_directory);
+  return *curdir;
 }
 
 /**
@@ -1036,6 +1058,7 @@ make_canonical() {
   }
 
 #ifndef _WIN32
+#if !defined(__wasi__)
   // Use realpath in order to resolve symlinks properly
   char newpath [PATH_MAX + 1];
   if (realpath(c_str(), newpath) != nullptr) {
@@ -1044,6 +1067,7 @@ make_canonical() {
     (*this) = newpath_fn;
   }
 #endif
+#endif // _WIN32
 
   Filename cwd = ExecutionEnvironment::get_cwd();
   if (!r_make_canonical(cwd)) {
@@ -1275,9 +1299,12 @@ to_os_long_name() const {
 }
 
 /**
- * Returns true if the filename exists on the disk, false otherwise.  If the
- * type is indicated to be executable, this also tests that the file has
+ * Returns true if the filename exists on the physical disk, false otherwise.
+ * If the type is indicated to be executable, this also tests that the file has
  * execute permission.
+ *
+ * @see VirtualFileSystem::exists() for checking whether the filename exists in
+ * the virtual file system.
  */
 bool Filename::
 exists() const {
@@ -1306,8 +1333,11 @@ exists() const {
 }
 
 /**
- * Returns true if the filename exists and is the name of a regular file (i.e.
- * not a directory or device), false otherwise.
+ * Returns true if the filename exists on the physical disk and is the name of
+ * a regular file (i.e. not a directory or device), false otherwise.
+ *
+ * @see VirtualFileSystem::is_regular_file() for checking whether the filename
+ * exists and is a regular file in the virtual file system.
  */
 bool Filename::
 is_regular_file() const {
@@ -1336,8 +1366,8 @@ is_regular_file() const {
 }
 
 /**
- * Returns true if the filename exists and is either a directory or a regular
- * file that can be written to, or false otherwise.
+ * Returns true if the filename exists on the physical disk and is either a
+ * directory or a regular file that can be written to, or false otherwise.
  */
 bool Filename::
 is_writable() const {
@@ -1368,8 +1398,11 @@ is_writable() const {
 }
 
 /**
- * Returns true if the filename exists and is a directory name, false
- * otherwise.
+ * Returns true if the filename exists on the physical disk and is a directory
+ * name, false otherwise.
+ *
+ * @see VirtualFileSystem::is_directory() for checking whether the filename
+ * exists as a directory in the virtual file system.
  */
 bool Filename::
 is_directory() const {
@@ -2306,7 +2339,7 @@ touch() const {
   // time.  For these systems, we'll just temporarily open the file in append
   // mode, then close it again (it gets closed when the pfstream goes out of
   // scope).
-  pfstream file;
+  pofstream file;
   return open_append(file);
 #endif  // _WIN32, PHAVE_UTIME_H
 }
@@ -2736,11 +2769,15 @@ atomic_compare_and_exchange_contents(string &orig_contents,
   char buf[buf_size];
 
   orig_contents = string();
-
+#if !defined(__wasi__)
 #ifdef PHAVE_LOCKF
   if (lockf(fd, F_LOCK, 0) != 0) {
 #else
   if (flock(fd, LOCK_EX) != 0) {
+#endif
+#else
+  #warning "FIXME lockf/flock"
+  if (0) {
 #endif
     perror(os_specific.c_str());
     close(fd);
@@ -2852,12 +2889,17 @@ atomic_read_contents(string &contents) const {
   char buf[buf_size];
 
   contents = string();
-
+#if !defined(__wasi__)
 #ifdef PHAVE_LOCKF
   if (lockf(fd, F_LOCK, 0) != 0) {
 #else
   if (flock(fd, LOCK_EX) != 0) {
 #endif
+#else
+  #warning "FIXME lockf/flock"
+  if (0) {
+#endif
+
     perror(os_specific.c_str());
     close(fd);
     return false;

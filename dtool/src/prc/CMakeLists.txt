@@ -74,6 +74,12 @@ if(EMSCRIPTEN)
     emscriptenLogStream.cxx)
 endif()
 
+if(WASI)
+  set(P3PRC_SOURCES ${P3PRC_SOURCES}
+    wasiLogStream.cxx)
+endif()
+
+
 if(HAVE_OPENSSL)
   list(APPEND P3PRC_SOURCES encryptStreamBuf.cxx encryptStream.cxx)
 endif()
@@ -81,6 +87,8 @@ endif()
 set(P3PRC_IGATEEXT
   configVariable_ext.cxx
   configVariable_ext.h
+  notify_ext.cxx
+  notify_ext.h
   streamReader_ext.cxx
   streamReader_ext.h
   streamWriter_ext.cxx

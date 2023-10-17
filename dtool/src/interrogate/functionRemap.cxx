@@ -312,6 +312,22 @@ make_wrapper_entry(FunctionIndex function_index) {
     iwrapper._flags |= InterrogateFunctionWrapper::F_callable_by_name;
   }
 
+  if (_flags & F_copy_constructor) {
+    iwrapper._flags |= InterrogateFunctionWrapper::F_copy_constructor;
+  }
+
+  if (_flags & F_coerce_constructor) {
+    iwrapper._flags |= InterrogateFunctionWrapper::F_coerce_constructor;
+  }
+
+  if (_extension) {
+    iwrapper._flags |= InterrogateFunctionWrapper::F_extension;
+  }
+
+  if (_cppfunc->_attributes.has_attribute("deprecated")) {
+    iwrapper._flags |= InterrogateFunctionWrapper::F_deprecated;
+  }
+
   Parameters::const_iterator pi;
   for (pi = _parameters.begin();
        pi != _parameters.end();
@@ -478,8 +494,12 @@ get_call_str(const string &container, const vector_string &pexprs) const {
       call << separator << "self";
       separator = ", ";
     }
+    if (_flags & F_explicit_cls) {
+      call << separator << "cls";
+      separator = ", ";
+    }
 
-    size_t pn = _first_true_parameter;
+    size_t pn;
     size_t num_parameters = pexprs.size();
 
     for (pn = _first_true_parameter;
@@ -765,14 +785,20 @@ setup_properties(const InterrogateFunction &ifunc, InterfaceMaker *interface_mak
     first_param = 1;
   }
 
-  if (_parameters.size() > first_param && _parameters[first_param]._name == "self" &&
+  if (_parameters.size() > first_param &&
       TypeManager::is_pointer_to_PyObject(_parameters[first_param]._remap->get_orig_type())) {
     // Here's a special case.  If the first parameter of a nonstatic method
     // is a PyObject * called "self", then we will automatically fill it in
-    // from the this pointer, and remove it from the generated parameter
-    // list.
-    _parameters.erase(_parameters.begin() + first_param);
-    _flags |= F_explicit_self;
+    // from the this pointer, and remove it from the generated parameter list.
+    // For static methods, we offer "cls" instead, containing the type object.
+    if (_parameters[first_param]._name == "self") {
+      _parameters.erase(_parameters.begin() + first_param);
+      _flags |= F_explicit_self;
+    }
+    else if (!_has_this && _parameters[first_param]._name == "cls") {
+      _parameters.erase(_parameters.begin() + first_param);
+      _flags |= F_explicit_cls;
+    }
   }
 
   if (_parameters.size() == first_param) {
@@ -856,8 +882,13 @@ setup_properties(const InterrogateFunction &ifunc, InterfaceMaker *interface_mak
     } else if (fname == "make") {
       if (!_has_this && _parameters.size() >= 1 &&
           TypeManager::is_pointer(_return_type->get_new_type())) {
-        // We can use this for coercion.
-        _flags |= F_coerce_constructor;
+        // We can use this for coercion, except if this is a kwargs param that
+        // does not have a default value.
+        if ((_flags & F_explicit_args) == 0 ||
+            _parameters.size() != first_param + 2 ||
+            _parameters[first_param + 1]._remap->has_default_value()) {
+          _flags |= F_coerce_constructor;
+        }
       }
 
       if (_args_type == InterfaceMaker::AT_varargs) {

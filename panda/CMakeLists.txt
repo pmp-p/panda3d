@@ -8,6 +8,7 @@ add_subdirectory(src/audiotraits)
 add_subdirectory(src/chan)
 add_subdirectory(src/char)
 add_subdirectory(src/cocoadisplay)
+add_subdirectory(src/cocoagldisplay)
 add_subdirectory(src/collide)
 add_subdirectory(src/configfiles)
 add_subdirectory(src/cull)
@@ -18,7 +19,6 @@ add_subdirectory(src/distort)
 add_subdirectory(src/downloader)
 add_subdirectory(src/downloadertools)
 add_subdirectory(src/dxgsg9)
-add_subdirectory(src/dxml)
 add_subdirectory(src/egg)
 add_subdirectory(src/egg2pg)
 add_subdirectory(src/egldisplay)
@@ -54,6 +54,7 @@ add_subdirectory(src/recorder)
 add_subdirectory(src/testbed)
 add_subdirectory(src/text)
 add_subdirectory(src/tform)
+add_subdirectory(src/tinydisplay)
 add_subdirectory(src/vision)
 add_subdirectory(src/vrpn)
 add_subdirectory(src/wgldisplay)
@@ -82,7 +83,7 @@ add_subdirectory(metalibs/pandaphysics)
 # Now add the Python modules:
 set(CORE_MODULE_COMPONENTS
   p3chan p3char p3collide p3cull p3device p3dgraph p3display
-  p3downloader p3dxml p3event p3express p3gobj p3grutil p3gsgbase p3linmath
+  p3downloader p3event p3express p3gobj p3grutil p3gsgbase p3linmath
   p3mathutil p3movies p3parametrics p3pgraph p3pgraphnodes p3pgui
   p3pipeline p3pnmimage p3pstatclient p3putil p3recorder p3text p3tform
   p3prc p3dtoolutil p3dtoolbase
@@ -149,6 +150,9 @@ from .interrogatedb import *
   set(entry_points_file "[distutils.commands]
 build_apps = direct.dist.commands:build_apps
 bdist_apps = direct.dist.commands:bdist_apps
+
+[setuptools.finalize_distribution_options]
+build_apps = direct.dist.commands:finalize_distribution_options
 ")
 
   configure_file("${PROJECT_SOURCE_DIR}/cmake/templates/METADATA.in"

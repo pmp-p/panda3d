@@ -62,7 +62,7 @@ extern char **environ;
 #include <sys/sysctl.h>
 #endif
 
-#if defined(IS_LINUX) || defined(IS_FREEBSD)
+#if ( defined(IS_LINUX) || defined(IS_FREEBSD) ) && !defined(__wasi__)
 // For link_map and dlinfo.
 #include <link.h>
 #include <dlfcn.h>
@@ -261,7 +261,7 @@ ns_has_environment_variable(const string &var) const {
 
 #ifdef PREREAD_ENVIRONMENT
   return false;
-#elif defined(_MSC_VER)
+#elif defined(_WIN32)
   size_t size = 0;
   getenv_s(&size, nullptr, 0, var.c_str());
   return size != 0;
@@ -305,7 +305,7 @@ ns_get_environment_variable(const string &var) const {
   }
 
 #ifndef PREREAD_ENVIRONMENT
-#ifdef _MSC_VER
+#ifdef _WIN32
   std::string value(128, '\0');
   size_t size = value.size();
   while (getenv_s(&size, &value[0], size, var.c_str()) == ERANGE) {
@@ -418,6 +418,10 @@ ns_get_environment_variable(const string &var) const {
   } else if (var == "XDG_DATA_HOME") {
     Filename home_dir = Filename::get_home_directory();
     return home_dir.get_fullpath() + "/.local/share";
+
+  } else if (var == "XDG_STATE_HOME") {
+    Filename home_dir = Filename::get_home_directory();
+    return home_dir.get_fullpath() + "/.local/state";
   }
 #endif // _WIN32
 
@@ -432,15 +436,10 @@ void ExecutionEnvironment::
 ns_set_environment_variable(const string &var, const string &value) {
   _variables[var] = value;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   _putenv_s(var.c_str(), value.c_str());
 #else
-  string putstr = var + "=" + value;
-
-  // putenv() requires us to malloc a new C-style string.
-  char *put = (char *)malloc(putstr.length() + 1);
-  strcpy(put, putstr.c_str());
-  putenv(put);
+  setenv(var.c_str(), value.c_str(), 1);
 #endif
 }
 
@@ -465,7 +464,7 @@ ns_clear_shadow(const string &var) {
 
 #ifdef PREREAD_ENVIRONMENT
   // Now we have to replace the value in the table.
-#ifdef _MSC_VER
+#ifdef _WIN32
   std::string value(128, '\0');
   size_t size = value.size();
   while (getenv_s(&size, &value[0], size, var.c_str()) == ERANGE) {
@@ -923,6 +922,7 @@ read_args() {
 #endif
 
 #ifndef _WIN32
+#if !defined(__wasi__)
   // Try to use realpath to get cleaner paths.
 
   if (!_binary_name.empty()) {
@@ -938,6 +938,7 @@ read_args() {
       _dtool_name = newpath;
     }
   }
+#endif
 #endif  // _WIN32
 
   if (_dtool_name.empty()) {
