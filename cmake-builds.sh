@@ -1,10 +1,11 @@
 #!/bin/bash
 
 
-export PYBUILD=3.12
-export SDKROOT=/opt/python-wasm-sdk
+export PYBUILD=${PYBUILD:-3.12}
+export SDKROOT=${SDKROOT:-/opt/python-wasm-sdk}
 
-export SRCDIR=$(dirname $0)
+export SRCDIR=$(realpath $(dirname $0))
+
 echo SRCDIR=$SRCDIR
 
 if ${CI:-false}
@@ -43,9 +44,9 @@ fi
 
 
 
-if echo $EMSDK|grep emsdk
+if echo $EMSDK|grep -q emsdk
 then
-    echo building emsdk
+    echo building with emsdk
 
     EMCC_CFLAGS="-sNODERAWFS" emcmake ${SDKROOT}/devices/x86_64/usr/bin/cmake ${SRCDIR} \
      -DCMAKE_BUILD_TYPE=Release \

@@ -23,7 +23,7 @@ jobs:
         curl https://wasmtime.dev/install.sh -sSf | bash
         mkdir -p /opt/python-wasm-sdk/wasisdk/bin
         mv -vf $(find $HOME/|grep /wasmtime$) /opt/python-wasm-sdk/wasisdk/bin/
-      working-directory: /opt
+      working-directory: /
 
     - name: Build WASM with wasi-sdk
       run: |
