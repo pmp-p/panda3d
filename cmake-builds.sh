@@ -67,7 +67,7 @@ then
 #    -DTHIRDPARTY_DIRECTORY=${PREFIX} \
 
 else
-    pushd ${SDKROOT}
+    pushd ${SDKROOT:-/opt/python-wasm-sdk}
 
     . scripts/wasisdk-fetch.sh
 
