@@ -98,29 +98,46 @@ END
 
     # HAVE_EGG
 
-    echo "WASI_SDK_PREFIX=$WASI_SDK_PREFIX"
+    echo "
+
+==============================================================
+    WASI_SDK_PREFIX=$WASI_SDK_PREFIX
+    WASI_SYSROOT=$WASI_SYSROOT
+    CMAKE_TOOLCHAIN_FILE=$CMAKE_TOOLCHAIN_FILE
+
+==============================================================
+
+
+"
 
     ${SDKROOT}/devices/x86_64/usr/bin/cmake ${SRCDIR} \
      -DCMAKE_BUILD_TYPE=Release \
      -DHAVE_THREADS=NO \
      -DHAVE_EGL=NO -DHAVE_GL=NO -DHAVE_GLX=NO -DHAVE_X11=NO -DHAVE_GLES1=NO -DHAVE_GLES2=NO \
      -DHAVE_OPENSSL=NO \
- -DHAVE_NET=NO -DWANT_NATIVE_NET=NO -DDO_PSTATS=NO \
-     -DHAVE_ZLIB=1 -DHAVE_PNG=NO  \
-     -DHAVE_TIFF=NO -DHAVE_JPEG=NO \
      -DHAVE_AUDIO=NO -DHAVE_OPUS=NO \
      -DHAVE_HARFBUZZ=NO -DHAVE_FREETYPE=NO \
-     -DTHIRDPARTY_DIRECTORY=${PREFIX} \
-     -DPHAVE_IOSTREAM=1 -DWANT_NATIVE_NET=NO -DHAVE_TINYDISPLAY=1 \
+     -DPHAVE_IOSTREAM=1 -DHAVE_TINYDISPLAY=1 -DHAVE_TIFF=NO  \
     \
-     -DHAVE_PYTHON=NO \
+    -DCMAKE_SYSTEM_NAME=WASI \
     \
-     -DCMAKE_SYSTEM_NAME=WASI -DWASISDK=${SDKROOT}/wasisdk \
+     -DHAVE_NET=NO -DWANT_NATIVE_NET=NO -DDO_PSTATS=NO \
+     -DHAVE_PYTHON=NO -DZLIB_ROOT=${WASI_SYSROOT} \
+    \
+     -DWASISDK=${SDKROOT}/wasisdk \
      -DWASI_SDK_PREFIX=${WASI_SDK_PREFIX} \
-     -DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PREFIX}/../share/cmake/wasi-sdk.cmake \
      -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DHOST_PATH_PZIP=/opt/python-wasm-sdk/build/panda3d-host/bin/pzip
 
+#      -DHAVE_ZLIB=0 -DHAVE_PNG=NO -DHAVE_JPEG=NO \
+# -DCMAKE_SYSTEM_NAME=WASI
+#     -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} \
+
+# not enough
+#  -DCMAKE_TOOLCHAIN_FILE=/opt/python-wasm-sdk/wasisdk/upstream/share/cmake/wasi-sdk.cmake
+
+
+#     -DTHIRDPARTY_DIRECTORY=${PREFIX} \
 
 
     #\
