@@ -1,0 +1,40 @@
+name: WebAssembly build
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+        SDK_VERSION: 3.1.52.3bi
+        SDK_ARCHIVE: python3.11-wasm-sdk-Ubuntu-22.04.tar.lz4
+        SDKROOT: /opt/python-wasm-sdk
+        SYS_PYTHON: /usr/bin/python3
+
+    steps:
+    - uses: actions/checkout@v4.1.0
+      with:
+        fetch-depth: 1
+
+    - name: apply test patches
+      run: |
+        echo patchwork if any
+        #curl -sL https://patch-diff.githubusercontent.com/raw/pmp-p/panda3d/pull/8.diff | patch -p1
+
+    - name: install python-wasm-sdk
+      run: |
+        sudo apt-get install -y lz4 wget pv
+        echo https://github.com/pygame-web/python-wasm-sdk/releases/download/$SDK_VERSION/$SDK_ARCHIVE
+        curl -sL --retry 5 https://github.com/pygame-web/python-wasm-sdk/releases/download/$SDK_VERSION/$SDK_ARCHIVE | tar xvP --use-compress-program=lz4 | pv -p -l -s 24400 >/dev/null
+        curl https://wasmtime.dev/install.sh -sSf | bash
+        mkdir -p /opt/python-wasm-sdk/wasisdk/bin
+        mv -vf $(find $HOME/|grep /wasmtime$) /opt/python-wasm-sdk/wasisdk/bin/
+      working-directory: /opt
+
+    - name: Build WASM with wasi-sdk
+      run: |
+        mkdir build-wasi
+        chmod +x cmake-builds.sh
+        cd build-wasi
+        ../cmake-builds.sh
+
+
