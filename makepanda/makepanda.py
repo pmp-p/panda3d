@@ -31,6 +31,12 @@ except:
     exit(1)
 
 if sys.version_info >= (3, 10):
+    if sys.version_info >= (3, 13):
+        sysconfig = __import__('sysconfig')
+        sysconfig._variable_rx = '([a-zA-Z][a-zA-Z0-9_]+)\\s*=\\s*(.*)'
+        sysconfig._findvar1_rx = '\\$\\(([A-Za-z][A-Za-z0-9_]*)\\)'
+        sysconfig._findvar2_rx = '\\${([A-Za-z][A-Za-z0-9_]*)}'
+        del sysconfig
     from sysconfig import get_platform
 else:
     from distutils.util import get_platform

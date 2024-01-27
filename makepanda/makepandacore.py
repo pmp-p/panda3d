@@ -6,6 +6,14 @@
 ########################################################################
 
 import configparser
+import sys
+if sys.version_info >= (3, 13):
+    sysconfig = __import__('sysconfig')
+    sysconfig._variable_rx = '([a-zA-Z][a-zA-Z0-9_]+)\\s*=\\s*(.*)'
+    sysconfig._findvar1_rx = '\\$\\(([A-Za-z][A-Za-z0-9_]*)\\)'
+    sysconfig._findvar2_rx = '\\${([A-Za-z][A-Za-z0-9_]*)}'
+    del sysconfig
+
 from distutils import sysconfig # DO NOT CHANGE to sysconfig - see #1230
 import fnmatch
 import getpass
@@ -17,7 +25,6 @@ import re
 import shutil
 import signal
 import subprocess
-import sys
 import threading
 import _thread as thread
 import time
