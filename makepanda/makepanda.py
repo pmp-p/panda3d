@@ -881,7 +881,6 @@ if (COMPILER=="GCC"):
     SmartPkgEnable("FMODEX",    "",          ("fmodex"), ("fmodex", "fmodex/fmod.h"))
     SmartPkgEnable("NVIDIACG",  "",          ("Cg"), "Cg/cg.h", framework = "Cg")
     SmartPkgEnable("ODE",       "",          ("ode"), "ode/ode.h", tool = "ode-config")
-    SmartPkgEnable("OPENAL",    "openal",    ("openal"), "AL/al.h", framework = "OpenAL")
     SmartPkgEnable("SQUISH",    "",          ("squish"), "squish.h")
     SmartPkgEnable("TIFF",      "libtiff-4", ("tiff"), "tiff.h")
     SmartPkgEnable("VRPN",      "",          ("vrpn", "quat"), ("vrpn", "quat.h", "vrpn/vrpn_Types.h"))
@@ -891,6 +890,7 @@ if (COMPILER=="GCC"):
 
     if GetTarget() != 'emscripten':
         # Most of these are provided by emscripten or via emscripten-ports.
+        SmartPkgEnable("OPENAL",   "openal",    ("openal"), "AL/al.h", framework = "OpenAL")
         SmartPkgEnable("EIGEN",    "eigen3",    (), ("Eigen/Dense",), target_pkg = 'ALWAYS')
         SmartPkgEnable("VORBIS",   "vorbisfile",("vorbisfile", "vorbis", "ogg"), ("ogg/ogg.h", "vorbis/vorbisfile.h"))
         SmartPkgEnable("BULLET",   "bullet", ("BulletSoftBody", "BulletDynamics", "BulletCollision", "LinearMath"), ("bullet", "bullet/btBulletDynamicsCommon.h"))
@@ -901,6 +901,7 @@ if (COMPILER=="GCC"):
         SmartPkgEnable("GLES",     "glesv1_cm", ("GLESv1_CM"), ("GLES/gl.h"), framework = "OpenGLES")
         SmartPkgEnable("GLES2",    "glesv2",    ("GLESv2"), ("GLES2/gl2.h")) #framework = "OpenGLES"?
         SmartPkgEnable("EGL",      "egl",       ("EGL"), ("EGL/egl.h"))
+        SmartPkgEnable("ZLIB",     "zlib",      ("z"), "zlib.h")
 
         # Copy freetype libraries to be specified after harfbuzz libraries as well,
         # because there's a circular dependency between the two libraries.
@@ -916,7 +917,6 @@ if (COMPILER=="GCC"):
         PkgDisable("TINYDISPLAY")
         for pkg, empkg in {
             'VORBIS': 'VORBIS',
-            'BULLET': 'BULLET',
             'ZLIB': 'ZLIB',
             'FREETYPE': 'FREETYPE',
             'HARFBUZZ': 'HARFBUZZ',
@@ -1054,8 +1054,6 @@ if (COMPILER=="GCC"):
 
     SmartPkgEnable("OPENSSL",   "openssl",   ("ssl", "crypto"), ("openssl/ssl.h", "openssl/crypto.h"))
     SmartPkgEnable("GTK3",      "gtk+-3.0")
-    if GetTarget() != 'emscripten':
-       SmartPkgEnable("ZLIB",      "zlib",      ("z"), "zlib.h")
 
     if not PkgSkip("OPENSSL") and GetTarget() not in ("darwin", "emscripten"):
         LibName("OPENSSL", "-Wl,--exclude-libs,libssl.a")
@@ -2501,7 +2499,7 @@ DTOOL_CONFIG=[
     ("IS_FREEBSD",                     'UNDEF',                  'UNDEF'),
     ("HAVE_EIGEN",                     'UNDEF',                  'UNDEF'),
     ("LINMATH_ALIGN",                  '1',                      '1'),
-    ("HAVE_ZLIB",                      'UNDEF',                  'UNDEF'),
+    ("HAVE_ZLIB",                      'UNDEF',                  '1'),
     ("HAVE_PNG",                       'UNDEF',                  'UNDEF'),
     ("HAVE_JPEG",                      'UNDEF',                  'UNDEF'),
     ("HAVE_VIDEO4LINUX",               'UNDEF',                  '1'),
@@ -2520,7 +2518,7 @@ DTOOL_CONFIG=[
     ("HAVE_FFTW",                      'UNDEF',                  'UNDEF'),
     ("HAVE_OPENSSL",                   'UNDEF',                  'UNDEF'),
     ("HAVE_NET",                       'UNDEF',                  'UNDEF'),
-    ("WANT_NATIVE_NET",                '1',                      '1'),
+    ("WANT_NATIVE_NET",                'UNDEF',                  'UNDEF'),
     ("SIMULATE_NETWORK_DELAY",         'UNDEF',                  'UNDEF'),
     ("HAVE_CG",                        'UNDEF',                  'UNDEF'),
     ("HAVE_CGGL",                      'UNDEF',                  'UNDEF'),
@@ -4454,7 +4452,7 @@ if not PkgSkip('SKEL'):
 # DIRECTORY: panda/src/distort/
 #
 
-if not PkgSkip('PANDAFX'):
+if 1: #not PkgSkip('PANDAFX'):
     OPTS=['DIR:panda/src/distort', 'BUILDING:PANDAFX']
     TargetAdd('p3distort_composite1.obj', opts=OPTS, input='p3distort_composite1.cxx')
 
@@ -4467,7 +4465,7 @@ if not PkgSkip('PANDAFX'):
 # DIRECTORY: panda/metalibs/pandafx/
 #
 
-if not PkgSkip('PANDAFX'):
+if 1: #not PkgSkip('PANDAFX'):
     OPTS=['DIR:panda/metalibs/pandafx', 'DIR:panda/src/distort', 'BUILDING:PANDAFX', 'NVIDIACG']
     TargetAdd('pandafx_pandafx.obj', opts=OPTS, input='pandafx.cxx')
 
@@ -4541,7 +4539,7 @@ if PkgSkip("FMODEX") == 0:
     TargetAdd('libp3fmod_audio.dll', input=COMMON_PANDA_LIBS)
     TargetAdd('libp3fmod_audio.dll', opts=['MODULE', 'ADVAPI', 'WINUSER', 'WINMM', 'FMODEX'])
 
-if PkgSkip("OPENAL") == 0:
+if 1: #PkgSkip("OPENAL") == 0:
     OPTS=['DIR:panda/src/audiotraits', 'BUILDING:OPENAL_AUDIO', 'OPENAL']
     TargetAdd('openal_audio_openal_audio_composite1.obj', opts=OPTS, input='openal_audio_composite1.cxx')
     TargetAdd('libp3openal_audio.dll', input='openal_audio_openal_audio_composite1.obj')
@@ -4935,7 +4933,7 @@ if not PkgSkip("ODE"):
 #
 # DIRECTORY: panda/src/bullet/
 #
-if not PkgSkip("BULLET"):
+if 1: #not PkgSkip("BULLET"):
     OPTS=['DIR:panda/src/bullet', 'BUILDING:PANDABULLET', 'BULLET']
     TargetAdd('p3bullet_composite.obj', opts=OPTS, input='p3bullet_composite.cxx')
 
@@ -4947,7 +4945,7 @@ if not PkgSkip("BULLET"):
 #
 # DIRECTORY: panda/metalibs/pandabullet/
 #
-if not PkgSkip("BULLET"):
+if 1: #not PkgSkip("BULLET"):
     OPTS=['DIR:panda/metalibs/pandabullet', 'BUILDING:PANDABULLET', 'BULLET']
     TargetAdd('pandabullet_pandabullet.obj', opts=OPTS, input='pandabullet.cxx')
 
@@ -4972,7 +4970,7 @@ if not PkgSkip("BULLET"):
 # DIRECTORY: panda/src/physics/
 #
 
-if not PkgSkip("PANDAPHYSICS"):
+if 1: #not PkgSkip("PANDAPHYSICS"):
     OPTS=['DIR:panda/src/physics', 'BUILDING:PANDAPHYSICS']
     TargetAdd('p3physics_composite1.obj', opts=OPTS, input='p3physics_composite1.cxx')
     TargetAdd('p3physics_composite2.obj', opts=OPTS, input='p3physics_composite2.cxx')
@@ -4987,7 +4985,7 @@ if not PkgSkip("PANDAPHYSICS"):
 # DIRECTORY: panda/src/particlesystem/
 #
 
-if not PkgSkip("PANDAPHYSICS") and not PkgSkip("PANDAPARTICLESYSTEM"):
+if 1: #not PkgSkip("PANDAPHYSICS") and not PkgSkip("PANDAPARTICLESYSTEM"):
     OPTS=['DIR:panda/src/particlesystem', 'BUILDING:PANDAPHYSICS']
     TargetAdd('p3particlesystem_composite1.obj', opts=OPTS, input='p3particlesystem_composite1.cxx')
     TargetAdd('p3particlesystem_composite2.obj', opts=OPTS, input='p3particlesystem_composite2.cxx')
@@ -5006,7 +5004,7 @@ if not PkgSkip("PANDAPHYSICS") and not PkgSkip("PANDAPARTICLESYSTEM"):
 # DIRECTORY: panda/metalibs/pandaphysics/
 #
 
-if not PkgSkip("PANDAPHYSICS"):
+if 1: # not PkgSkip("PANDAPHYSICS"):
     OPTS=['DIR:panda/metalibs/pandaphysics', 'BUILDING:PANDAPHYSICS']
     TargetAdd('pandaphysics_pandaphysics.obj', opts=OPTS, input='pandaphysics.cxx')
 
