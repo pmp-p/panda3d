@@ -2,6 +2,11 @@
 
 extern PyMODINIT_FUNC PyInit_core(void);
 extern PyMODINIT_FUNC PyInit_direct(void);
+extern PyMODINIT_FUNC PyInit_egg(void);
+extern PyMODINIT_FUNC PyInit_bullet(void);
+extern PyMODINIT_FUNC PyInit_physics(void);
+extern PyMODINIT_FUNC PyInit_fx(void);
+extern PyMODINIT_FUNC PyInit_interrogatedb(void);
 
 
 static PyObject *
@@ -54,6 +59,11 @@ load_submodule(const char *parent, PyObject *mod, const char *alias)
 PyMODINIT_FUNC PyInit_static(void) {
     load_submodule("panda3d", PyInit_core(), "core");
     load_submodule("panda3d", PyInit_direct(), "direct");
+    load_submodule("panda3d", PyInit_egg(), "egg");
+    load_submodule("panda3d", PyInit_bullet(), "bullet");
+    load_submodule("panda3d", PyInit_physics(), "physics");
+    load_submodule("panda3d", PyInit_fx(), "fx");
+    load_submodule("panda3d", PyInit_interrogatedb(),"interrogatedb");
     return PyModule_Create(&mod_panda3d_static);
 }
 
