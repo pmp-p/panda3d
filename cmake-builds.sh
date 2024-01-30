@@ -21,20 +21,32 @@ then
 
     echo "building  ${SRCDIR} for host $(arch)"
 
-    ${SDKROOT}/devices/x86_64/usr/bin/cmake -S ${SRCDIR} \
+    CC=clang CXX=clang++ ${SDKROOT}/devices/x86_64/usr/bin/cmake -S ${SRCDIR} \
      -DCMAKE_BUILD_TYPE=Debug -DHAVE_AUDIO=NO -DHAVE_THREADS=NO \
-     -DHAVE_EGL=NO -DHAVE_GL=NO -DHAVE_GLX=NO -DHAVE_X11=YES -DHAVE_GLES1=NO -DHAVE_GLES2=NO \
+     -DHAVE_EGL=NO -DHAVE_GL=YES -DHAVE_GLX=YES -DHAVE_X11=YES -DHAVE_GLES1=NO -DHAVE_GLES2=YES \
      -DHAVE_OPENSSL=NO \
  -DHAVE_NET=NO -DWANT_NATIVE_NET=NO -DDO_PSTATS=NO \
      -DHAVE_ZLIB=YES -DHAVE_PNG=NO  \
      -DHAVE_TIFF=NO -DHAVE_JPEG=NO \
      -DHAVE_OPUS=NO \
      -DHAVE_HARFBUZZ=YES -DHAVE_FREETYPE=YES \
- -DHAVE_IOS_TYPEDEFS=1 -DHAVE_TINYDISPLAY=1  \
+ -DHAVE_IOS_TYPEDEFS=1 -DHAVE_TINYDISPLAY=1 -DBUILD_SHARED_LIBS=NO \
     \
-     -DHAVE_PYTHON=NO -DBUILD_SHARED_LIBS=NO \
-    \
-     -DCMAKE_INSTALL_PREFIX=${SDKROOT}/devices/$(arch)/usr
+     -DCMAKE_INSTALL_PREFIX=${SDKROOT}/devices/$(arch)/usr \
+     -DHAVE_PYTHON=1 -DPython_ROOT_DIR=${SDKROOT}/devices/$(arch)/usr \
+    -DWANT_PYTHON_VERSION=3.12
+
+
+
+#     -DPython_VERSION=3.12 -DPython_VERSION_MAJOR=3 -DPython_VERSION_MINOR=12 -DPython_VERSION_PATCH=1 \
+#        -DPython3_EXECUTABLE:FILEPATH=${SDKROOT}/devices/$(arch)/usr/bin/python${PYBUILD} \
+#        -DPython3_INCLUDE_DIR=${SDKROOT}/devices/$(arch)/usr/include/python${PYBUILD} \
+#        -DPython_LIBRARIES=${SDKROOT}/devices/$(arch)/usr/lib \
+#        -DPython3_FOUND=TRUE \
+#        -DPython3_Development_FOUND=TRUE \
+#        -DPython3_Development.Module_FOUND=TRUE \
+#        -DPython3_Development.Embed_FOUND=TRUE \
+#    \
 
 # -DHAVE_SDL2=1
 
