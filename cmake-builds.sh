@@ -181,7 +181,7 @@ make
 
 if $CI
 then
-    ${SDKROOT}/wasisdk/bin/wasi-run ./bin/pview.wasi -c -L -s $(pwd)/out.bmp
+    ${SDKROOT}/wasisdk/bin/wasi-run $(pwd)/bin/pview.wasi -c -L -s $(pwd)/out.bmp
     if md5sum out.bmp | grep -q "a0345fc5e8b77b9715df69e271e22c64"
     then
         exit 0
