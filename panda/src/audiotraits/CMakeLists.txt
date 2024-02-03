@@ -1,6 +1,6 @@
 if(NOT HAVE_AUDIO)
   return()
-elseif(NOT HAVE_FMODEX AND NOT HAVE_OPENAL)
+elseif(NOT HAVE_FMODEX AND NOT HAVE_OPENAL AND NOT WASI)
   message(SEND_ERROR
     "You must have an audio backend for audio support! Turn off HAVE_AUDIO to ignore this.")
 endif()
@@ -80,4 +80,14 @@ if(HAVE_OPENAL)
   install(FILES ${P3OPENAL_HEADERS} COMPONENT OpenALDevel DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/panda3d)
 
   export_targets(OpenAL NAMESPACE "Panda3D::OpenAL::" COMPONENT OpenALDevel)
+endif()
+
+
+if(WASI)
+  set(P3OPENAL_HEADERS
+    config_openalAudio.h
+    openalAudioManager.h
+    openalAudioSound.I openalAudioSound.h
+  )
+
 endif()
