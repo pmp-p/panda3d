@@ -15,6 +15,7 @@ set(P3TINYDISPLAY_HEADERS
   tinyXGraphicsPipe.I tinyXGraphicsPipe.h
   tinyXGraphicsWindow.I tinyXGraphicsWindow.h
   tinyOffscreenGraphicsPipe.I tinyOffscreenGraphicsPipe.h
+  tinyOffscreenGraphicsWindow.I tinyOffscreenGraphicsWindow.h
   srgb_tables.h
   zbuffer.h
   zfeatures.h
@@ -48,6 +49,7 @@ set(P3TINYDISPLAY_SOURCES
   tinyGraphicsBuffer.cxx
   tinyGraphicsStateGuardian.cxx
   tinyOffscreenGraphicsPipe.cxx
+  tinyOffscreenGraphicsWindow.cxx
   tinySDLGraphicsPipe.cxx
   tinySDLGraphicsWindow.cxx
   tinyTextureContext.cxx
@@ -97,25 +99,25 @@ endif()
 composite_sources(p3tinydisplay P3TINYDISPLAY_SOURCES)
 
 # Determine the additional components to link in.
-set(COCOADISPLAY_LINK_TARGETS)
+set(P3TINYDISPLAY_LINK_TARGETS)
 
-if(WIN32)
-  list(APPEND COCOADISPLAY_LINK_TARGETS p3windisplay)
-endif()
-
-if(HAVE_X11)
-  list(APPEND COCOADISPLAY_LINK_TARGETS p3x11display)
-endif()
-
-if(HAVE_COCOA)
-  list(APPEND COCOADISPLAY_LINK_TARGETS p3cocoadisplay)
-endif()
 
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "TinyDisplay")
 add_metalib(p3tinydisplay ${MODULE_TYPE}
   ${P3TINYDISPLAY_HEADERS} ${P3TINYDISPLAY_SOURCES} ${P3TINYDISPLAY_ZTRIANGLE_SOURCES}
-  COMPONENTS ${COCOADISPLAY_LINK_TARGETS})
+  COMPONENTS ${TINYDISPLAY_LINK_TARGETS})
 unset(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME)
+
+
+if(WIN32)
+  list(APPEND P3TINYDISPLAY_LINK_TARGETS p3windisplay)
+elseif(HAVE_X11)
+  list(APPEND P3TINYDISPLAY_LINK_TARGETS p3x11display)
+elseif(HAVE_COCOA)
+  list(APPEND P3TINYDISPLAY_LINK_TARGETS p3cocoadisplay)
+else()
+    list(APPEND P3TINYDISPLAY_LINK_TARGETS p3tinydisplay panda) # p3framework)
+endif()
 
 set_target_properties(p3tinydisplay PROPERTIES DEFINE_SYMBOL BUILDING_TINYDISPLAY)
 target_link_libraries(p3tinydisplay panda)
