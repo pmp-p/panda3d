@@ -27,15 +27,13 @@ static PyMemberDef standard_type_members[] = {
 
 static PyObject *GetSuperBase(PyObject *self) {
   Dtool_PyTypedObject *super_base = Dtool_GetSuperBase();
-  Py_XINCREF((PyTypeObject *)super_base); // order is important .. this is used for static functions
-  return (PyObject *)super_base;
+  return Py_XNewRef((PyObject *)&super_base->_PyType);
 };
 
 static void Dtool_PyModuleClassInit_DTOOL_SUPER_BASE(PyObject *module) {
   if (module != nullptr) {
     Dtool_PyTypedObject *super_base = Dtool_GetSuperBase();
-    Py_INCREF((PyTypeObject *)&super_base);
-    PyModule_AddObject(module, "DTOOL_SUPER_BASE", (PyObject *)&super_base);
+    PyModule_AddObjectRef(module, "DTOOL_SUPER_BASE", (PyObject *)&super_base->_PyType);
   }
 }
 
@@ -63,8 +61,18 @@ static void Dtool_FreeInstance_DTOOL_SUPER_BASE(PyObject *self) {
  */
 Dtool_PyTypedObject *Dtool_GetSuperBase() {
   Dtool_TypeMap *type_map = Dtool_GetGlobalTypeMap();
+
+  // If we don't have the GIL, we have to protect this with a lock to make
+  // sure that there is only one DTOOL_SUPER_BASE instance in the world.
+#ifdef Py_GIL_DISABLED
+  PyMutex_Lock(&type_map->_lock);
+#endif
+
   auto it = type_map->find("DTOOL_SUPER_BASE");
   if (it != type_map->end()) {
+#ifdef Py_GIL_DISABLED
+    PyMutex_Unlock(&type_map->_lock);
+#endif
     return it->second;
   }
 
@@ -150,13 +158,19 @@ Dtool_PyTypedObject *Dtool_GetSuperBase() {
 
   if (PyType_Ready((PyTypeObject *)&super_base_type) < 0) {
     PyErr_SetString(PyExc_TypeError, "PyType_Ready(Dtool_DTOOL_SUPER_BASE)");
+#ifdef Py_GIL_DISABLED
+    PyMutex_Unlock(&type_map->_lock);
+#endif
     return nullptr;
   }
-  Py_INCREF((PyTypeObject *)&super_base_type);
+  Py_INCREF(&super_base_type._PyType);
 
   PyDict_SetItemString(super_base_type._PyType.tp_dict, "DtoolGetSuperBase", PyCFunction_New(&methods[0], (PyObject *)&super_base_type));
 
   (*type_map)["DTOOL_SUPER_BASE"] = &super_base_type;
+#ifdef Py_GIL_DISABLED
+  PyMutex_Unlock(&type_map->_lock);
+#endif
   return &super_base_type;
 }
 

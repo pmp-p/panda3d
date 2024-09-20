@@ -6,15 +6,6 @@
 ########################################################################
 
 import configparser
-import sys
-if sys.version_info >= (3, 13):
-    sysconfig = __import__('sysconfig')
-    sysconfig._variable_rx = '([a-zA-Z][a-zA-Z0-9_]+)\\s*=\\s*(.*)'
-    sysconfig._findvar1_rx = '\\$\\(([A-Za-z][A-Za-z0-9_]*)\\)'
-    sysconfig._findvar2_rx = '\\${([A-Za-z][A-Za-z0-9_]*)}'
-    del sysconfig
-
-from distutils import sysconfig # DO NOT CHANGE to sysconfig - see #1230
 import fnmatch
 import getpass
 import glob
@@ -25,9 +16,12 @@ import re
 import shutil
 import signal
 import subprocess
+import sys
+import sysconfig
 import threading
 import _thread as thread
 import time
+import locations
 
 SUFFIX_INC = [".cxx",".cpp",".c",".h",".I",".yxx",".lxx",".mm",".rc",".r"]
 SUFFIX_DLL = [".dll",".dlo",".dle",".dli",".dlm",".mll",".exe",".pyd",".ocx"]
@@ -53,8 +47,12 @@ ANDROID_API = None
 SYS_LIB_DIRS = []
 SYS_INC_DIRS = []
 DEBUG_DEPENDENCIES = False
-DEFAULT_CC = "gcc"
-DEFAULT_CXX = "g++"
+if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
+    DEFAULT_CC = "clang"
+    DEFAULT_CXX = "clang++"
+else:
+    DEFAULT_CC = os.environ.get("CC","gcc")
+    DEFAULT_CXX = os.environ.get("CXX","g++")
 DEFAULT_AR = "ar"
 DEFAULT_RANLIB = "ranlib"
 
@@ -96,54 +94,11 @@ MSVCVERSIONINFO = {
 
 ########################################################################
 ##
-## Maya and Max Version List (with registry keys)
+## DirectX Version List
 ##
 ########################################################################
 
-MAYAVERSIONINFO = [("MAYA6",   "6.0"),
-                   ("MAYA65",  "6.5"),
-                   ("MAYA7",   "7.0"),
-                   ("MAYA8",   "8.0"),
-                   ("MAYA85",  "8.5"),
-                   ("MAYA2008","2008"),
-                   ("MAYA2009","2009"),
-                   ("MAYA2010","2010"),
-                   ("MAYA2011","2011"),
-                   ("MAYA2012","2012"),
-                   ("MAYA2013","2013"),
-                   ("MAYA20135","2013.5"),
-                   ("MAYA2014","2014"),
-                   ("MAYA2015","2015"),
-                   ("MAYA2016","2016"),
-                   ("MAYA20165","2016.5"),
-                   ("MAYA2017","2017"),
-                   ("MAYA2018","2018"),
-                   ("MAYA2019","2019"),
-                   ("MAYA2020","2020"),
-                   ("MAYA2022","2022"),
-]
-
-MAXVERSIONINFO = [("MAX6", "SOFTWARE\\Autodesk\\3DSMAX\\6.0", "installdir", "maxsdk\\cssdk\\include"),
-                  ("MAX7", "SOFTWARE\\Autodesk\\3DSMAX\\7.0", "Installdir", "maxsdk\\include\\CS"),
-                  ("MAX8", "SOFTWARE\\Autodesk\\3DSMAX\\8.0", "Installdir", "maxsdk\\include\\CS"),
-                  ("MAX9", "SOFTWARE\\Autodesk\\3DSMAX\\9.0", "Installdir", "maxsdk\\include\\CS"),
-                  ("MAX2009", "SOFTWARE\\Autodesk\\3DSMAX\\11.0\\MAX-1:409", "Installdir", "maxsdk\\include\\CS"),
-                  ("MAX2010", "SOFTWARE\\Autodesk\\3DSMAX\\12.0\\MAX-1:409", "Installdir", "maxsdk\\include\\CS"),
-                  ("MAX2011", "SOFTWARE\\Autodesk\\3DSMAX\\13.0\\MAX-1:409", "Installdir", "maxsdk\\include\\CS"),
-                  ("MAX2012", "SOFTWARE\\Autodesk\\3DSMAX\\14.0\\MAX-1:409", "Installdir", "maxsdk\\include\\CS"),
-                  ("MAX2013", "SOFTWARE\\Autodesk\\3DSMAX\\15.0\\MAX-1:409", "Installdir", "maxsdk\\include\\CS"),
-                  ("MAX2014", "SOFTWARE\\Autodesk\\3DSMAX\\16.0\\MAX-1:409", "Installdir", "maxsdk\\include\\CS"),
-]
-
-MAYAVERSIONS = []
-MAXVERSIONS = []
 DXVERSIONS = ["DX9"]
-
-for (ver,key) in MAYAVERSIONINFO:
-    MAYAVERSIONS.append(ver)
-
-for (ver,key1,key2,subdir) in MAXVERSIONINFO:
-    MAXVERSIONS.append(ver)
 
 ########################################################################
 ##
@@ -628,6 +583,68 @@ def GetSevenZip():
 def HasSevenZip():
     return GetSevenZip() is not None
 
+
+########################################################################
+##
+## GetInterrogate[Module]
+##
+## Installs and locates the interrogate tool.
+##
+########################################################################
+
+INTERROGATE_DIR = None
+INTERROGATE_LOCK = threading.Lock()
+
+def GetInterrogateDir():
+    global INTERROGATE_DIR
+
+    if INTERROGATE_DIR:
+        return INTERROGATE_DIR
+
+    with INTERROGATE_LOCK:
+        if INTERROGATE_DIR:
+            return INTERROGATE_DIR
+
+        dir = os.path.join(GetOutputDir(), "tmp", "interrogate")
+        if not os.path.isdir(os.path.join(dir, "panda3d_interrogate-0.2.0.dist-info")):
+            backup = {}
+            todel = []
+            for k in os.environ.keys():
+                if k == "SYS_PYTHON":
+                    continue
+                if k.find('PYTHON')>0:
+                    todel.append(k)
+            for k in todel:
+                backup[k] = os.environ.pop(k)
+                print(f"removed {k} {backup[k]}")
+            oscmd("\"%s\" -E -m pip install --force-reinstall -t \"%s\" panda3d-interrogate==0.2.0" % (os.environ.get('SYS_PYTHON',sys.executable), dir))
+            os.environ.update(backup)
+        INTERROGATE_DIR = dir
+
+    return dir
+
+
+def GetInterrogate():
+    path = os.environ.get('INTERROGATE')
+    if path:
+        return path
+
+    path = GetInterrogateDir() + '/interrogate/interrogate'
+    if sys.platform == "win32":
+        path += ".exe"
+    return path
+
+
+def GetInterrogateModule():
+    path = os.environ.get('INTERROGATE_MODULE')
+    if path:
+        return path
+
+    path = GetInterrogateDir() + '/interrogate_module/interrogate_module'
+    if sys.platform == "win32":
+        path += ".exe"
+    return path
+
 ########################################################################
 ##
 ## LocateBinary
@@ -969,14 +986,16 @@ def LoadDependencyCache():
         icache = None
 
     if icache is not None:
-        ver = pickle.load(icache)
-        if ver == DCACHE_VERSION:
-            CXXINCLUDECACHE = pickle.load(icache)
-            BUILTFROMCACHE = pickle.load(icache)
-            icache.close()
-        else:
-            print("Cannot load dependency cache, version is too old!")
-
+        try:
+            ver = pickle.load(icache)
+            if ver == DCACHE_VERSION:
+                CXXINCLUDECACHE = pickle.load(icache)
+                BUILTFROMCACHE = pickle.load(icache)
+                icache.close()
+            else:
+                print("Cannot load dependency cache, version is too old!")
+        except:
+            print("Cannot load dependency cache, file damaged!")
 ########################################################################
 ##
 ## CxxFindSource: given a source file name and a directory list,
@@ -2107,46 +2126,6 @@ def SdkLocateDirectX( strMode = 'default' ):
     if ("DX9" in SDK):
         SDK["DIRECTCAM"] = SDK["DX9"]
 
-def SdkLocateMaya():
-    for (ver, key) in MAYAVERSIONINFO:
-        if (PkgSkip(ver)==0 and ver not in SDK):
-            GetSdkDir(ver.lower().replace("x",""), ver)
-            if (not ver in SDK):
-                if (GetHost() == "windows"):
-                    for dev in ["Alias|Wavefront","Alias","Autodesk"]:
-                        fullkey="SOFTWARE\\"+dev+"\\Maya\\"+key+"\\Setup\\InstallPath"
-                        res = GetRegistryKey(fullkey, "MAYA_INSTALL_LOCATION", override64=False)
-                        if (res != 0):
-                            res = res.replace("\\", "/").rstrip("/")
-                            SDK[ver] = res
-                elif (GetHost() == "darwin"):
-                    ddir = "/Applications/Autodesk/maya"+key
-                    if (os.path.isdir(ddir)): SDK[ver] = ddir
-                else:
-                    if (GetTargetArch() in ("x86_64", "amd64")):
-                        ddir1 = "/usr/autodesk/maya"+key+"-x64"
-                        ddir2 = "/usr/aw/maya"+key+"-x64"
-                    else:
-                        ddir1 = "/usr/autodesk/maya"+key
-                        ddir2 = "/usr/aw/maya"+key
-
-                    if (os.path.isdir(ddir1)):   SDK[ver] = ddir1
-                    elif (os.path.isdir(ddir2)): SDK[ver] = ddir2
-
-def SdkLocateMax():
-    if (GetHost() != "windows"): return
-    for version,key1,key2,subdir in MAXVERSIONINFO:
-        if (PkgSkip(version)==0):
-            if (version not in SDK):
-                GetSdkDir("maxsdk"+version.lower()[3:], version)
-                GetSdkDir("maxsdk"+version.lower()[3:], version+"CS")
-                if (not version in SDK):
-                    top = GetRegistryKey(key1,key2)
-                    if (top != 0):
-                        SDK[version] = top + "maxsdk"
-                        if (os.path.isdir(top + "\\" + subdir)!=0):
-                            SDK[version+"CS"] = top + subdir
-
 def SdkLocatePython(prefer_thirdparty_python=False):
     if PkgSkip("PYTHON"):
         # We're not compiling with Python support.  We still need to set this
@@ -2237,7 +2216,7 @@ def SdkLocatePython(prefer_thirdparty_python=False):
         # On macOS, search for the Python framework directory matching the
         # version number of our current Python version.
         sysroot = SDK.get("MACOSX", "")
-        version = sysconfig.get_python_version()
+        version = locations.get_python_version()
 
         py_fwx = "{0}/System/Library/Frameworks/Python.framework/Versions/{1}".format(sysroot, version)
 
@@ -2262,30 +2241,19 @@ def SdkLocatePython(prefer_thirdparty_python=False):
         LibDirectory("PYTHON", py_fwx + "/lib")
 
     #elif GetTarget() == 'windows':
-    #    SDK["PYTHON"] = os.path.dirname(sysconfig.get_python_inc())
-    #    SDK["PYTHONVERSION"] = "python" + sysconfig.get_python_version()
+    #    SDK["PYTHON"] = os.path.dirname(locations.get_python_inc())
+    #    SDK["PYTHONVERSION"] = "python" + locations.get_python_version()
     #    SDK["PYTHONEXEC"] = sys.executable
 
-    elif GetTarget() == 'emscripten':
-        incdir = sysconfig.get_python_inc()
-        SDK["PYTHON"] = incdir.replace(f'/include/python{sysconfig.get_python_version()}', "")
-
-        SDK["PYTHONVERSION"] = "python" + sysconfig.get_python_version() + abiflags
-        SDK["PYTHONEXEC"] = os.path.realpath(sys.executable)
-
-        IncDirectory("PYTHON", incdir.replace(f'/python{sysconfig.get_python_version()}', "") )
-        libdir = incdir.replace(f'include/python{sysconfig.get_python_version()}', "lib")
-        LibDirectory("PYTHON", libdir)
-
     else:
-        SDK["PYTHON"] = sysconfig.get_python_inc()
-        SDK["PYTHONVERSION"] = "python" + sysconfig.get_python_version() + abiflags
+        SDK["PYTHON"] = locations.get_python_inc()
+        SDK["PYTHONVERSION"] = "python" + locations.get_python_version() + abiflags
         SDK["PYTHONEXEC"] = os.path.realpath(sys.executable)
 
     if CrossCompiling():
         # We need a version of Python we can run.
         SDK["PYTHONEXEC"] = sys.executable
-        host_version = "python" + sysconfig.get_python_version() + abiflags
+        host_version = "python" + locations.get_python_version() + abiflags
         if SDK["PYTHONVERSION"] != host_version:
             exit("Host Python version (%s) must be the same as target Python version (%s)!" % (host_version, SDK["PYTHONVERSION"]))
 
@@ -2703,27 +2671,6 @@ def SdkAutoDisableDirectX():
             else:
                 WARNINGS.append("Using "+ver+" sdk: "+SDK[ver])
 
-def SdkAutoDisableMaya():
-    for (ver,key) in MAYAVERSIONINFO:
-        if (ver not in SDK) and (PkgSkip(ver)==0):
-            if (GetHost() == "windows"):
-                WARNINGS.append("The registry does not appear to contain a pointer to the "+ver+" SDK.")
-            else:
-                WARNINGS.append("I cannot locate SDK for "+ver)
-            WARNINGS.append("I have automatically added this command-line option: --no-"+ver.lower())
-            PkgDisable(ver)
-
-def SdkAutoDisableMax():
-    for version,key1,key2,subdir in MAXVERSIONINFO:
-        if (PkgSkip(version)==0) and ((version not in SDK) or (version+"CS" not in SDK)):
-            if (GetHost() == "windows"):
-                if (version in SDK):
-                    WARNINGS.append("Your copy of "+version+" does not include the character studio SDK")
-                else:
-                    WARNINGS.append("The registry does not appear to contain a pointer to "+version)
-                WARNINGS.append("I have automatically added this command-line option: --no-"+version.lower())
-            PkgDisable(version)
-
 def SdkAutoDisableSpeedTree():
     if ("SPEEDTREE" not in SDK) and (PkgSkip("SPEEDTREE")==0):
         PkgDisable("SPEEDTREE")
@@ -3109,14 +3056,14 @@ def SetupBuildEnvironment(compiler):
         if GetHost() == 'emscripten':
             keep = []
             for dir in SYS_INC_DIRS:
-                if not dir.startswith('/usr'):
+                if not dir.startswith('/usr/'):
                     keep.append(dir)
             SYS_INC_DIRS.clear()
             SYS_INC_DIRS.extend(keep)
 
             keep.clear()
             for dir in SYS_LIB_DIRS:
-                if not dir.startswith('/usr'):
+                if not dir.startswith('/usr/'):
                     keep.append(dir)
             SYS_LIB_DIRS.clear()
             SYS_LIB_DIRS.extend(keep)
@@ -3455,10 +3402,15 @@ def SetOrigExt(x, v):
 def GetExtensionSuffix():
     target = GetTarget()
     if target == 'windows':
-        if GetTargetArch() == 'x64':
-            return '.cp%d%d-win_amd64.pyd' % (sys.version_info[:2])
+        if GetOptimize() <= 2:
+            dllext = '_d'
         else:
-            return '.cp%d%d-win32.pyd' % (sys.version_info[:2])
+            dllext = ''
+
+        if GetTargetArch() == 'x64':
+            return dllext + '.cp%d%d-win_amd64.pyd' % (sys.version_info[:2])
+        else:
+            return dllext + '.cp%d%d-win32.pyd' % (sys.version_info[:2])
     elif target == 'emscripten':
         return '.so'
     elif CrossCompiling():
@@ -3469,7 +3421,7 @@ def GetExtensionSuffix():
 
 def GetPythonABI():
     if not CrossCompiling():
-        soabi = sysconfig.get_config_var('SOABI')
+        soabi = locations.get_config_var('SOABI')
         if soabi:
             return soabi
 
@@ -3599,8 +3551,8 @@ def GetCurrentPythonVersionInfo():
         "soabi": GetPythonABI(),
         "ext_suffix": GetExtensionSuffix(),
         "executable": sys.executable,
-        "purelib": sysconfig.get_python_lib(False),
-        "platlib": sysconfig.get_python_lib(True),
+        "purelib": locations.get_python_lib(False),
+        "platlib": locations.get_python_lib(True),
     }
 
 

@@ -31,7 +31,7 @@ extern Dtool_PyTypedObject Dtool_TypeHandle;
 /**
  * Class that upcalls to the parent class when write_datagram is called.
  */
-class TypedWritableProxy : public TypedWritable {
+class TypedWritableProxy : public TypedWritable, public DtoolProxy {
 public:
   ~TypedWritableProxy() {
   }
@@ -123,10 +123,6 @@ public:
   virtual TypeHandle force_init_type() override {
     return _type;
   }
-
-public:
-  PyObject *_self;
-  TypeHandle _type;
 };
 
 /**
@@ -149,8 +145,7 @@ wrap_typed_writable(void *from_this, PyTypeObject *from_type) {
   }
 
   nassertr(to_this->_self != nullptr, nullptr);
-  Py_INCREF(to_this->_self);
-  return to_this->_self;
+  return Py_NewRef(to_this->_self);
 }
 
 /**
@@ -212,8 +207,8 @@ __new__(PyTypeObject *cls) {
 
   // Make sure that the bindings know how to obtain a wrapper for this type.
   TypeRegistry *registry = TypeRegistry::ptr();
-  registry->record_python_type(*handle, cls, &wrap_typed_writable);
-  Py_INCREF(cls);
+  PyTypeObject *cls_ref = (PyTypeObject *)Py_NewRef((PyObject *)cls);
+  registry->record_python_type(*handle, cls_ref, &wrap_typed_writable);
 
   // Note that we don't increment the reference count here, because that would
   // create a memory leak.  The TypedWritableProxy gets deleted when the Python
@@ -341,35 +336,37 @@ find_global_decode(PyObject *this_class, const char *func_name) {
   // Get the module in which BamWriter is defined.
   PyObject *module_name = PyObject_GetAttrString((PyObject *)&Dtool_BamWriter, "__module__");
   if (module_name != nullptr) {
-    // borrowed reference
-    PyObject *sys_modules = PyImport_GetModuleDict();
-    if (sys_modules != nullptr) {
-      // borrowed reference
-      PyObject *module = PyDict_GetItem(sys_modules, module_name);
-      if (module != nullptr) {
-        PyObject *func = PyObject_GetAttrString(module, (char *)func_name);
-        if (func != nullptr) {
-          Py_DECREF(module_name);
-          return func;
-        }
+    PyObject *module = PyImport_GetModule(module_name);
+    Py_DECREF(module_name);
+    if (module != nullptr) {
+      PyObject *func = PyObject_GetAttrString(module, (char *)func_name);
+      Py_DECREF(module);
+      if (func != nullptr) {
+        return func;
       }
     }
-    Py_DECREF(module_name);
   }
 
   PyObject *bases = PyObject_GetAttrString(this_class, "__bases__");
   if (bases != nullptr) {
-    if (PySequence_Check(bases)) {
-      Py_ssize_t size = PySequence_Size(bases);
-      for (Py_ssize_t i = 0; i < size; ++i) {
-        PyObject *base = PySequence_GetItem(bases, i);
-        if (base != nullptr) {
-          PyObject *func = find_global_decode(base, func_name);
-          Py_DECREF(base);
-          if (func != nullptr) {
-            Py_DECREF(bases);
-            return func;
-          }
+    {
+      PyObject *tuple = PySequence_Tuple(bases);
+      Py_DECREF(bases);
+      if (tuple == nullptr) {
+        PyErr_Clear();
+        return nullptr;
+      }
+      bases = tuple;
+    }
+
+    Py_ssize_t size = PyTuple_GET_SIZE(bases);
+    for (Py_ssize_t i = 0; i < size; ++i) {
+      PyObject *base = PyTuple_GET_ITEM(bases, i);
+      if (base != nullptr) {
+        PyObject *func = find_global_decode(base, func_name);
+        if (func != nullptr) {
+          Py_DECREF(bases);
+          return func;
         }
       }
     }
