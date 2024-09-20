@@ -1986,7 +1986,6 @@ def CompileLink(dll, obj, opts):
                 return
             cmd += " -sWARN_ON_UNDEFINED_SYMBOLS"
             if GetOrigExt(dll) == ".exe":
-                cmd += " --memory-init-file 0"
                 cmd += " -sEXIT_RUNTIME -sNODERAWFS -sASSERTIONS -sTOTAL_STACK=4MB -sALLOW_MEMORY_GROWTH"
         elif GetTarget() == 'wasi':
             return
