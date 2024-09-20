@@ -77,6 +77,8 @@ OPENCV_VER_23 = False
 PLATFORM = None
 COPY_PYTHON = True
 
+WASM_TARGETS = ("emscripten","wasi")
+
 PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "GL", "GLES", "GLES2"] + DXVERSIONS + ["TINYDISPLAY", "NVIDIACG", # 3D graphics
   "EGL",                                               # OpenGL (ES) integration
@@ -283,6 +285,11 @@ def parseopts(args):
         usage("You should specify a list of packages to use or --everything to enable all packages.")
 
     if (optimize==""): optimize = "3"
+
+    if GetHost() == 'emscripten':
+        target = 'emscripten'
+    elif GetHost() == 'wasi':
+        target = 'wasi'
 
     if target is not None or target_archs:
         SetTarget(target, target_archs[-1] if target_archs else None)
@@ -1016,10 +1023,9 @@ if (COMPILER=="GCC"):
 
         if not PkgSkip("PYTHON") and GetTarget() == "emscripten":
             # Python may have been compiled with these requirements.
-            # Is there a cleaner way to check this?
-            LinkFlag("PYTHON", "-s USE_BZIP2=1 -s USE_SQLITE3=1")
+            LinkFlag("PYTHON", f'-sUSE_BZIP2 -sUSE_SQLITE3 {os.environ.get("PYLINK","")}')
             if not PkgHasCustomLocation("PYTHON"):
-                python_libdir = GetThirdpartyDir() + "python/lib"
+                python_libdir = GetThirdpartyDir() + "python/lib"                
                 if os.path.isfile(python_libdir + "/libmpdec.a"):
                     LibName("PYTHON", python_libdir + "/libmpdec.a")
                 if os.path.isfile(python_libdir + "/libexpat.a"):
@@ -1897,7 +1903,6 @@ def CompileLink(dll, obj, opts):
         elif GetTarget() == 'emscripten':
             cmd += " -s WARN_ON_UNDEFINED_SYMBOLS=1"
             if GetOrigExt(dll) == ".exe":
-                cmd += " --memory-init-file 0"
                 cmd += " -s EXIT_RUNTIME=1"
 
         else:

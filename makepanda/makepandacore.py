@@ -17,6 +17,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import sysconfig
 import threading
 import _thread as thread
 import time
@@ -50,8 +51,8 @@ if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
     DEFAULT_CC = "clang"
     DEFAULT_CXX = "clang++"
 else:
-    DEFAULT_CC = "gcc"
-    DEFAULT_CXX = "g++"
+    DEFAULT_CC = os.environ.get("CC","gcc")
+    DEFAULT_CXX = os.environ.get("CXX","g++")
 DEFAULT_AR = "ar"
 DEFAULT_RANLIB = "ranlib"
 
@@ -277,6 +278,11 @@ def Error(msg, extra=None):
 
 def GetHost():
     """Returns the host platform, ie. the one we're compiling on."""
+    host = sysconfig.get_config_var('HOST_GNU_TYPE') or ''
+    if host and host.endswith('-emscripten'):
+        return 'emscripten'
+    if host and host.endswith('-wasi'):
+        return 'wasi'
     if sys.platform == 'win32' or sys.platform == 'cygwin':
         # sys.platform is win32 on 64-bits Windows as well.
         return 'windows'
@@ -421,6 +427,14 @@ def SetTarget(target, arch=None):
         DEFAULT_CXX = "em++"
         DEFAULT_AR = "emar"
         DEFAULT_RANLIB = "emranlib"
+
+        arch = "wasm32"
+
+    elif target == 'wasi':
+        DEFAULT_CC = "clang"
+        DEFAULT_CXX = "clang++"
+        DEFAULT_AR = "llvm-ar"
+        DEFAULT_RANLIB = "llvm-ranlib"
 
         arch = "wasm32"
 
@@ -593,8 +607,18 @@ def GetInterrogateDir():
 
         dir = os.path.join(GetOutputDir(), "tmp", "interrogate")
         if not os.path.isdir(os.path.join(dir, "panda3d_interrogate-0.2.0.dist-info")):
-            oscmd("\"%s\" -m pip install --force-reinstall -t \"%s\" panda3d-interrogate==0.2.0" % (sys.executable, dir))
-
+            backup = {}
+            todel = []
+            for k in os.environ.keys():
+                if k == "SYS_PYTHON":
+                    continue
+                if k.find('PYTHON')>0:
+                    todel.append(k)
+            for k in todel:
+                backup[k] = os.environ.pop(k)
+                print(f"removed {k} {backup[k]}")
+            oscmd("\"%s\" -E -m pip install --force-reinstall -t \"%s\" panda3d-interrogate==0.2.0" % (os.environ.get('SYS_PYTHON',sys.executable), dir))
+            os.environ.update(backup)
         INTERROGATE_DIR = dir
 
     return dir
@@ -962,14 +986,16 @@ def LoadDependencyCache():
         icache = None
 
     if icache is not None:
-        ver = pickle.load(icache)
-        if ver == DCACHE_VERSION:
-            CXXINCLUDECACHE = pickle.load(icache)
-            BUILTFROMCACHE = pickle.load(icache)
-            icache.close()
-        else:
-            print("Cannot load dependency cache, version is too old!")
-
+        try:
+            ver = pickle.load(icache)
+            if ver == DCACHE_VERSION:
+                CXXINCLUDECACHE = pickle.load(icache)
+                BUILTFROMCACHE = pickle.load(icache)
+                icache.close()
+            else:
+                print("Cannot load dependency cache, version is too old!")
+        except:
+            print("Cannot load dependency cache, file damaged!")
 ########################################################################
 ##
 ## CxxFindSource: given a source file name and a directory list,
@@ -1423,7 +1449,10 @@ def GetThirdpartyDir():
         THIRDPARTYDIR = base + "/android-libs-%s/" % (target_arch)
 
     elif (target == 'emscripten'):
-        THIRDPARTYDIR = base + "/emscripten-libs/"
+        THIRDPARTYDIR = base + "/lib/"
+
+    elif (target == 'wasi'):
+        THIRDPARTYDIR = base
 
     else:
         Warn("Unsupported platform:", target)
@@ -3021,6 +3050,23 @@ def SetupBuildEnvironment(compiler):
                 SYS_INC_DIRS.append(pcbsd_inc)
 
         null.close()
+
+        # emscripten should have nothing to do with /usr
+        # and it should not be installed there
+        if GetHost() == 'emscripten':
+            keep = []
+            for dir in SYS_INC_DIRS:
+                if not dir.startswith('/usr/'):
+                    keep.append(dir)
+            SYS_INC_DIRS.clear()
+            SYS_INC_DIRS.extend(keep)
+
+            keep.clear()
+            for dir in SYS_LIB_DIRS:
+                if not dir.startswith('/usr/'):
+                    keep.append(dir)
+            SYS_LIB_DIRS.clear()
+            SYS_LIB_DIRS.extend(keep)
 
         # Print out the search paths
         if GetVerbose():
