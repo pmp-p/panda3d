@@ -573,6 +573,23 @@ update_texture(TextureContext *, bool) {
 }
 
 /**
+ * Ensures that the current Texture data is refreshed onto the GSG.  This
+ * means updating the texture properties and/or re-uploading the texture
+ * image, if necessary.  This should only be called within the draw thread.
+ *
+ * If force is true, this function will not return until the texture has been
+ * fully uploaded.  If force is false, the function may choose to upload a
+ * simple version of the texture instead, if the texture is not fully resident
+ * (and if get_incomplete_render() is true).
+ */
+bool GraphicsStateGuardian::
+update_texture(TextureContext *tc, bool force, CompletionToken token) {
+  bool result = update_texture(tc, force);
+  token.complete(result);
+  return result;
+}
+
+/**
  * Frees the resources previously allocated via a call to prepare_texture(),
  * including deleting the TextureContext itself, if it is non-NULL.
  */
@@ -743,6 +760,18 @@ release_shader_buffers(const pvector<BufferContext *> &contexts) {
   for (BufferContext *bc : contexts) {
     release_shader_buffer(bc);
   }
+}
+
+/**
+ * This method should only be called by the GraphicsEngine.  Do not call it
+ * directly; call GraphicsEngine::extract_texture_data() instead.
+ *
+ * This method will be called in the draw thread to download the buffer's
+ * current contents synchronously.
+ */
+bool GraphicsStateGuardian::
+extract_shader_buffer_data(ShaderBuffer *buffer, vector_uchar &data) {
+  return false;
 }
 
 /**
@@ -2201,7 +2230,7 @@ fetch_specified_light(const NodePath &np, LVecBase4f *into) {
       if (!node->is_of_type(PointLight::get_class_type())) {
         t *= lens->get_projection_mat() * shadow_bias_mat;
       }
-      *(LMatrix4f *)&into[Shader::LA_shadow_view_matrix] = t;
+      *(LMatrix4f *)&into[Shader::LA_shadow_view_matrix] = LCAST(float, t);
     }
 
     LVecBase3 atten = light->get_attenuation();

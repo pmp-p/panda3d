@@ -114,6 +114,7 @@ PUBLISHED:
   GraphicsEngine *get_engine() const;
   INLINE const GraphicsThreadingModel &get_threading_model() const;
   MAKE_PROPERTY(pipe, get_pipe);
+  MAKE_PROPERTY(engine, get_engine);
 
   INLINE bool is_hardware() const;
   virtual INLINE bool prefers_triangle_strips() const;
@@ -291,6 +292,7 @@ PUBLISHED:
 public:
   virtual TextureContext *prepare_texture(Texture *tex);
   virtual bool update_texture(TextureContext *tc, bool force);
+  virtual bool update_texture(TextureContext *tc, bool force, CompletionToken token);
   virtual void release_texture(TextureContext *tc);
   virtual void release_textures(const pvector<TextureContext *> &contexts);
   virtual bool extract_texture_data(Texture *tex);
@@ -315,6 +317,7 @@ public:
   virtual BufferContext *prepare_shader_buffer(ShaderBuffer *data);
   virtual void release_shader_buffer(BufferContext *ibc);
   virtual void release_shader_buffers(const pvector<BufferContext *> &contexts);
+  virtual bool extract_shader_buffer_data(ShaderBuffer *buffer, vector_uchar &data);
 
   virtual void begin_occlusion_query();
   virtual PT(OcclusionQueryContext) end_occlusion_query();
